@@ -49,6 +49,49 @@ def image_stitch(imgs, output_dir):
         cv2.imwrite(output_dir+'/stitched.jpg',result[1])
 
 
+def get_histogram_gray(img):
+    img_gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+    cv2.imwrite('img_gray.jpg',img_gray)
+    hist = cv2.calcHist([img_gray], [0], None, [256], [0, 256])
+    plt.plot(hist)
+    plt.show()
+    return hist
+
+
+def get_histogram(img):
+    img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    colors = ('b','g','r')
+    # for i, col in enumerate(colors):
+    #     if i == 0:
+    #         range = 180
+    #     else :
+    #         range = 256
+    #     hist = cv2.calcHist([img_hsv],[i], None, [range], [0, range])
+    #     #plt.plot(hist, color = col)
+    #     #plt.xlim([0,256])
+
+    hist = cv2.calcHist([img_hsv], [0, 1, 2], None, [180,256,256],[0,180,0,256,0,256])
+    plt.plot(hist[1])
+    plt.show()
+    return hist
+
+
+
+def get_color_mask_image(img,hsv_low_range,hsv_high_range, mode):
+    img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    mask_hsv = cv2.inRange(img_hsv,0,150)
+    print(mask_hsv)
+    if mode == 'REMOVED':
+        mask_hsv = 255- mask_hsv
+    img_mask = cv2.bitwise_and(img_hsv,img_hsv,mask=mask_hsv)
+    #img_bgr = cv2.cvtColor(img_mask,cv2.COLOR_HSV2BGR)
+    cv2.imwrite('out_mask.jpg',img_mask)
+    #plt.imshow(img_bgr)
+    plt.show()
+    #return img_bgr
+
+
+
 def get_contour(img_in):
     #convert to binary image for contour
 
@@ -75,4 +118,11 @@ def calculate_moment(c):
 # imgs = create_test_images('C:\DL_project\image_proc\images\B.jpg')
 # image_stitch(imgs,'C:\DL_project\image_proc\output')
 img = cv2.imread('C:\DL_project\image_proc\images\B.jpg')
-get_contour(img)
+#get_contour(img)
+get_histogram_gray(img)
+
+#remove some colors
+red_low_range = np.array([0])
+red_high_range = np.array([130])
+
+get_color_mask_image(img,red_low_range,red_high_range, 'REMOVED')
