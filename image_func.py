@@ -61,34 +61,25 @@ def get_histogram_gray(img):
 def get_histogram(img):
     img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     colors = ('b','g','r')
-    # for i, col in enumerate(colors):
-    #     if i == 0:
-    #         range = 180
-    #     else :
-    #         range = 256
-    #     hist = cv2.calcHist([img_hsv],[i], None, [range], [0, range])
-    #     #plt.plot(hist, color = col)
-    #     #plt.xlim([0,256])
-
     hist = cv2.calcHist([img_hsv], [0, 1, 2], None, [180,256,256],[0,180,0,256,0,256])
-    plt.plot(hist[1])
+    plt.plot(hist[2])
     plt.show()
     return hist
 
 
 
 def get_color_mask_image(img,hsv_low_range,hsv_high_range, mode):
-    img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    mask_hsv = cv2.inRange(img_hsv,0,150)
-    print(mask_hsv)
+    img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    mask_hsv = cv2.inRange(img_hsv,hsv_low_range,hsv_high_range)
+
     if mode == 'REMOVED':
-        mask_hsv = 255- mask_hsv
-    img_mask = cv2.bitwise_and(img_hsv,img_hsv,mask=mask_hsv)
-    #img_bgr = cv2.cvtColor(img_mask,cv2.COLOR_HSV2BGR)
-    cv2.imwrite('out_mask.jpg',img_mask)
-    #plt.imshow(img_bgr)
-    plt.show()
-    #return img_bgr
+        mask_hsv = 255-mask_hsv
+    img_mask = cv2.bitwise_and(img, img, mask=mask_hsv)
+
+    img_bgr = cv2.cvtColor(img_mask,cv2.COLOR_HSV2BGR)
+    cv2.imwrite('mask.jpg',mask_hsv)
+    cv2.imwrite('out_masked.jpg',img_bgr)
+    return img_bgr
 
 
 
@@ -107,7 +98,7 @@ def get_contour(img_in):
         cv2.imwrite('out.jpg',img_in)
         cv2.imwrite('out1.jpg',img_binary)
 
-    return c
+    return cx,cy
 
 
 def calculate_moment(c):
@@ -115,14 +106,36 @@ def calculate_moment(c):
     cx,  cy = int(M['m10']/M['m00']), int(M['m01']/M['m00'])
     return cx, cy
 
+def draw_grid(img,cx,cy,size):
+    dx = img.shape[1]//size
+    dy = img.shape[0]//size
+    print(cy,cx)
+
+    for pt_y in np.arange(cy,0,-dy):
+        cv2.line(img,(0,pt_y),(img.shape[1],pt_y),(255,0,0),5)
+
+    for pt_y in np.arange(cy,img.shape[0],dy):
+        cv2.line(img, (0,pt_y), (img.shape[1],pt_y),(255,0,0),5)
+
+    for pt_x in np.arange(cx,0,-dx):
+        cv2.line(img,(pt_x,0),(pt_x,img.shape[0]),(0,255,0),5)
+
+    for pt_x in np.arange(cx,img.shape[1],dx):
+        cv2.line(img, (pt_x,0), (pt_x,img.shape[0]),(0,255,0),5)
+
+    plt.imshow(img)
+    plt.show()
+
+
 # imgs = create_test_images('C:\DL_project\image_proc\images\B.jpg')
 # image_stitch(imgs,'C:\DL_project\image_proc\output')
 img = cv2.imread('C:\DL_project\image_proc\images\B.jpg')
-#get_contour(img)
-get_histogram_gray(img)
+cx,cy = get_contour(img)
+draw_grid(img,cx,cy,6)
+# get_histogram(img)
 
 #remove some colors
-red_low_range = np.array([0])
-red_high_range = np.array([130])
-
-get_color_mask_image(img,red_low_range,red_high_range, 'REMOVED')
+# red_low_range = np.array([125,43,33])
+# red_high_range = np.array([155,255,100])
+#
+# get_color_mask_image(img,red_low_range,red_high_range, 'REMOVED')
