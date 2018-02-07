@@ -3,6 +3,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 import sys
+import cv2
 
 
 WINDOW_WIDTH = 720
@@ -50,7 +51,7 @@ class MainWindow(QMainWindow):
         label0.setAlignment(Qt.AlignCenter)
         vbox.addWidget(label0,0,0)
         butn0 = QPushButton('图像拼接')
-        butn1 = QPushButton('计算重心')
+        butn1 = QPushButton('绘制图像轮廓')
         butn2 = QPushButton('计算颜色统计图')
         butn3 = QPushButton('图像网格化')
         vbox.addWidget(butn0,1,0)
@@ -118,17 +119,18 @@ class MainWindow(QMainWindow):
         filenames = image_func.scan_directory(stitch_dir)
         print(len(filenames))
         images = image_func.load_images(filenames)
-        image_func.image_stitch(images,out_dir)
-        self.label2.setText('拼接成功!')
-        self.label2.repaint()
-        #display the image
-        out_jpg = QPixmap(out_dir+'/stitched.jpg',)
-        self.label4.setImage(out_jpg)
-        self.label4.repaint()
-        #scale_jpg = out_jpg.scaledToHeight(self.label4.height(),Qt.KeepAspectRatio)
-        #scale_jpg = out_jpg.scaled(self.label4.size(),Qt.KeepAspectRatio)
-        #self.label4.setPixmap(scale_jpg)
-        #self.label4.setScaledContents(True)
+        self.stitched_image = image_func.image_stitch(images,out_dir)
+        if self.stitched_image is None :
+            self.label2.setText('拼接失败，请检查拍摄的输入图像，需要保证25%的重合拍摄!')
+            self.label2.repaint()
+        else:
+            self.label2.setText('拼接成功!')
+            self.label2.repaint()
+            #display the image
+            out_jpg = QPixmap(out_dir+'/stitched.jpg',)
+            self.label4.setImage(out_jpg)
+            self.label4.repaint()
+
 
     def setLabel4_backgroud(self):
         pe = QPalette()
@@ -136,11 +138,22 @@ class MainWindow(QMainWindow):
         self.label4.setAutoFillBackground(True)
         self.label4.setPalette(pe)
 
-
-
-
     def OnClickButton1(self):
-        print("clicked")
+        if self.stitched_image is None:
+            self.label2.setText('图像拼接失败，无法进行下一步计算！')
+            self.label2.repaint()
+            return
+        else:
+            self.label2.setText('开始绘制图像轮廓，请等待....')
+            self.label2.repaint()
+        cx, cy, c, max_x, max_y, min_x, min_y = image_func.get_contour(self.stitched_image)
+        img = image_func.draw_grid(self.stitched_image,cx,cy,8,max_x,max_y,min_x,min_y)
+        img1 = cv2.cvtColor(img,cv2.COLOR_BGR2RGB)
+        QImg = QImage(img1.data, img.shape[1], img.shape[0], 3 * img.shape[1], QImage.Format_RGB888)
+        pixmap = QPixmap.fromImage(QImg)
+        self.label4.setImage(pixmap)
+        self.label4.repaint()
+
 
     def OnClickButton2(self):
         print("clicked")

@@ -48,8 +48,10 @@ def image_stitch(imgs, output_dir):
     result = stitcher.stitch(imgs)
     if result[0] != 0 :
         print("Image stitching is failed, please check the input images!")
+        return None
     else:
         cv2.imwrite(output_dir+'/stitched.jpg',result[1])
+    return result[1]
 
 
 def get_histogram_gray(img):
@@ -139,7 +141,7 @@ def draw_grid(img,cx,cy,size,max_x,max_y,min_x,min_y,color=GREEN):
     cv2.rectangle(img,(min_x,min_y),(max_x,max_y),color,3)
 
     cv2.imwrite('grid.jpg',img)
-
+    return img
 
 def get_statistics_per_bin():
     pass
