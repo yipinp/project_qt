@@ -8,6 +8,24 @@ import sys
 WINDOW_WIDTH = 720
 WINDOW_HEIGHT = 576
 
+
+class llabel(QLabel):
+    def __init__(self):
+        super(llabel, self).__init__()
+        self.m_pixmap = None
+
+    def setImage(self, image):
+        self.m_pixmap = image
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        if self.m_pixmap is None:
+            return
+        scale_jpg = self.m_pixmap.scaled(self.size(), Qt.KeepAspectRatio)
+        self.setPixmap(scale_jpg)
+
+
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow,self).__init__()
@@ -42,12 +60,18 @@ class MainWindow(QMainWindow):
         hwg1.setLayout(vbox)
 
 
-        vbox1 = QGridLayout()
-        vbox1.setAlignment(Qt.AlignTop)
+        self.vbox1 = QGridLayout()
+        self.vbox1.setAlignment(Qt.AlignTop)
         label1 = QLabel('信息显示区')
         label1.setAlignment(Qt.AlignCenter)
-        vbox1.addWidget(label1,0,0)
-        hwg2.setLayout(vbox1)
+        self.vbox1.addWidget(label1,0,0)
+        self.label2 = QLabel('准备接收命令...')
+        self.label2.setAlignment(Qt.AlignTop|Qt.AlignHCenter)
+        self.vbox1.addWidget(self.label2,1,0)
+        self.vbox1.setRowStretch(0,20)
+        self.vbox1.setRowStretch(1,80)
+        hwg2.setLayout(self.vbox1)
+
 
         hsplitter.addWidget(hwg1)
         hsplitter.addWidget(hwg2)
@@ -57,12 +81,18 @@ class MainWindow(QMainWindow):
 
         vsplitter = QSplitter(Qt.Vertical)
         vsplitter.addWidget(hsplitter)
-        vbox2 = QGridLayout()
+        vbox2 = QVBoxLayout()
         hwg3.setLayout(vbox2)
         vbox2.setAlignment(Qt.AlignTop)
-        label2 = QLabel('图片显示区')
-        label2.setAlignment(Qt.AlignCenter)
-        vbox2.addWidget(label2)
+        label3 = QLabel('图片显示区')
+        label3.setAlignment(Qt.AlignTop|Qt.AlignHCenter)
+        vbox2.addWidget(label3)
+        self.label4 = llabel()
+        self.label4.setAlignment(Qt.AlignCenter)
+        self.setLabel4_backgroud()
+        vbox2.addWidget(self.label4)
+        vbox2.setStretch(0,10)
+        vbox2.setStretch(1,90)
         vsplitter.addWidget(hsplitter)
         vsplitter.addWidget(hwg3)
         vsplitter.setStretchFactor(1,4)
@@ -80,17 +110,33 @@ class MainWindow(QMainWindow):
         butn3.clicked.connect(self.OnClickButton3)
 
 
-
-
-
-
     def OnClickButton0(self):
         stitch_dir = QFileDialog.getExistingDirectory(self,'选择要拼接的文件夹','./')
-        print(stitch_dir)
+        out_dir = QFileDialog.getExistingDirectory(self, '选择输出文件夹', './')
+        self.label2.setText('开始拼接图像，请等待.....')
+        self.label2.repaint()
         filenames = image_func.scan_directory(stitch_dir)
         print(len(filenames))
         images = image_func.load_images(filenames)
-        image_func.image_stitch(images,'./')
+        image_func.image_stitch(images,out_dir)
+        self.label2.setText('拼接成功!')
+        self.label2.repaint()
+        #display the image
+        out_jpg = QPixmap(out_dir+'/stitched.jpg',)
+        self.label4.setImage(out_jpg)
+        self.label4.repaint()
+        #scale_jpg = out_jpg.scaledToHeight(self.label4.height(),Qt.KeepAspectRatio)
+        #scale_jpg = out_jpg.scaled(self.label4.size(),Qt.KeepAspectRatio)
+        #self.label4.setPixmap(scale_jpg)
+        #self.label4.setScaledContents(True)
+
+    def setLabel4_backgroud(self):
+        pe = QPalette()
+        pe.setColor(QPalette.Background,Qt.black)
+        self.label4.setAutoFillBackground(True)
+        self.label4.setPalette(pe)
+
+
 
 
     def OnClickButton1(self):
@@ -102,6 +148,9 @@ class MainWindow(QMainWindow):
 
     def OnClickButton3(self):
         print("clicked")
+
+
+
 
 
 

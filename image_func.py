@@ -38,7 +38,7 @@ def create_test_images(input_image):
 
 def load_images(input_list):
     imgs = []
-    for i in len(input_list):
+    for i in range(len(input_list)):
         imgs.append(cv2.imread(input_list[i]))
     return imgs
 
@@ -146,19 +146,19 @@ def get_statistics_per_bin():
 
 
 
-
-imageName = r'/home/pyp/project_stitch/project_qt/images/B.jpg'
-# imgs = create_test_images(imageName)
-# image_stitch(imgs,'C:\DL_project\image_proc\output')
-img = cv2.imread(imageName)
-cx,cy,c,max_x,max_y,min_x,min_y = get_contour(img)
-#draw_grid(img,cx,cy,8,max_x,max_y,min_x,min_y)
-# get_histogram(img)
-
-#remove some colors
-red_low_range = np.array([125,43,33])
-red_high_range = np.array([155,255,100])
-# #
-mask_hsv = get_color_mask_image(img,red_low_range,red_high_range)
-mask_hsv = generate_final_mask(mask_hsv,c,'dfdf')
-generate_image_from_mask(img,mask_hsv,cx,cy,max_x,max_y,min_x,min_y,6)
+#
+# imageName = r'/home/pyp/project_stitch/project_qt/images/B.jpg'
+# # imgs = create_test_images(imageName)
+# # image_stitch(imgs,'C:\DL_project\image_proc\output')
+# img = cv2.imread(imageName)
+# cx,cy,c,max_x,max_y,min_x,min_y = get_contour(img)
+# #draw_grid(img,cx,cy,8,max_x,max_y,min_x,min_y)
+# # get_histogram(img)
+#
+# #remove some colors
+# red_low_range = np.array([125,43,33])
+# red_high_range = np.array([155,255,100])
+# # #
+# mask_hsv = get_color_mask_image(img,red_low_range,red_high_range)
+# mask_hsv = generate_final_mask(mask_hsv,c,'dfdf')
+# generate_image_from_mask(img,mask_hsv,cx,cy,max_x,max_y,min_x,min_y,6)
