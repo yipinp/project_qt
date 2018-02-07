@@ -1,7 +1,9 @@
+import image_func
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 import sys
+
 
 WINDOW_WIDTH = 720
 WINDOW_HEIGHT = 576
@@ -72,7 +74,34 @@ class MainWindow(QMainWindow):
         wwg.setLayout(hbox)
         self.setCentralWidget(wwg)
 
+        butn0.clicked.connect(self.OnClickButton0)
+        butn1.clicked.connect(self.OnClickButton1)
+        butn2.clicked.connect(self.OnClickButton2)
+        butn3.clicked.connect(self.OnClickButton3)
 
+
+
+
+
+
+    def OnClickButton0(self):
+        stitch_dir = QFileDialog.getExistingDirectory(self,'选择要拼接的文件夹','./')
+        print(stitch_dir)
+        filenames = image_func.scan_directory(stitch_dir)
+        print(len(filenames))
+        images = image_func.load_images(filenames)
+        image_func.image_stitch(images,'./')
+
+
+    def OnClickButton1(self):
+        print("clicked")
+
+    def OnClickButton2(self):
+        print("clicked")
+
+
+    def OnClickButton3(self):
+        print("clicked")
 
 
 
