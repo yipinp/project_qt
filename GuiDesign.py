@@ -22,7 +22,7 @@ class llabel(QLabel):
         super().paintEvent(event)
         if self.m_pixmap is None:
             return
-        scale_jpg = self.m_pixmap.scaled(self.size(), Qt.KeepAspectRatio)
+        scale_jpg = self.m_pixmap.scaled(self.size(), Qt.KeepAspectRatio|Qt.SmoothTransformation)
         self.setPixmap(scale_jpg)
 
 
@@ -92,8 +92,8 @@ class MainWindow(QMainWindow):
         self.label4.setAlignment(Qt.AlignCenter)
         self.setLabel4_backgroud()
         vbox2.addWidget(self.label4)
-        vbox2.setStretch(0,10)
-        vbox2.setStretch(1,90)
+        vbox2.setStretch(0,5)
+        vbox2.setStretch(1,95)
         vsplitter.addWidget(hsplitter)
         vsplitter.addWidget(hwg3)
         vsplitter.setStretchFactor(1,4)
@@ -112,24 +112,8 @@ class MainWindow(QMainWindow):
 
 
     def OnClickButton0(self):
-        stitch_dir = QFileDialog.getExistingDirectory(self,'选择要拼接的文件夹','./')
-        out_dir = QFileDialog.getExistingDirectory(self, '选择输出文件夹', './')
-        self.label2.setText('开始拼接图像，请等待.....')
-        self.label2.repaint()
-        filenames = image_func.scan_directory(stitch_dir)
-        print(len(filenames))
-        images = image_func.load_images(filenames)
-        self.stitched_image = image_func.image_stitch(images,out_dir)
-        if self.stitched_image is None :
-            self.label2.setText('拼接失败，请检查拍摄的输入图像，需要保证25%的重合拍摄!')
-            self.label2.repaint()
-        else:
-            self.label2.setText('拼接成功!')
-            self.label2.repaint()
-            #display the image
-            out_jpg = QPixmap(out_dir+'/stitched.jpg',)
-            self.label4.setImage(out_jpg)
-            self.label4.repaint()
+        self.dynamic_widget_buttn0()
+
 
 
     def setLabel4_backgroud(self):
@@ -153,19 +137,72 @@ class MainWindow(QMainWindow):
         pixmap = QPixmap.fromImage(QImg)
         self.label4.setImage(pixmap)
         self.label4.repaint()
-
+        self.label2.setText('绘制完成！')
+        self.label2.repaint()
 
     def OnClickButton2(self):
         print("clicked")
 
 
     def OnClickButton3(self):
-        print("clicked")
+        self.dynamic_widget_buttn0()
 
 
+    def dynamic_widget_buttn0(self):
+        vbox = QGridLayout()
+        self.widget_button0 = QWidget()
+        self.widget_button0.setWindowTitle('拼接图像输入信息框')
+        label00 = QLabel("待拼接图像输入目录:")
+        self.edit0 = QLineEdit()
+        self.label01 = QPushButton('...')
+        self.label01.clicked.connect(self.OnClickButtonFile0)
+        label10 = QLabel("拼接图像输出目录:")
+        self.edit1 = QLineEdit()
+        self.label11 = QPushButton('...')
+        self.label11.clicked.connect(self.OnClickButtonFile1)
+        self.label21 = QPushButton("开始拼接")
+        self.label21.clicked.connect(self.OnClickStitchStart)
+        vbox.addWidget(label00,0,0)
+        vbox.addWidget(self.edit0,0,1)
+        vbox.addWidget(self.label01,0,2)
+        vbox.addWidget(label10,1,0)
+        vbox.addWidget(self.edit1,1,1)
+        vbox.addWidget(self.label11,1,2)
+        vbox.addWidget(self.label21,2,1)
+        self.widget_button0.setLayout(vbox)
+        self.widget_button0.setWindowFlags(Qt.WindowStaysOnTopHint)
+        self.widget_button0.move(100,100)
+        self.widget_button0.show()
+
+    def OnClickButtonFile0(self):
+        dir = QFileDialog.getExistingDirectory(self, '选择输入文件夹', './')
+        self.edit0.setText(dir)
 
 
+    def OnClickButtonFile1(self):
+        dir = QFileDialog.getExistingDirectory(self, '选择输出文件夹', './')
+        self.edit1.setText(dir)
 
+    def OnClickStitchStart(self):
+        self.widget_button0.close()
+        self.label2.setText('开始拼接图像，请等待.....')
+        self.label2.repaint()
+        stitch_dir = self.edit0.text()
+        filenames = image_func.scan_directory(stitch_dir)
+        print(len(filenames))
+        images = image_func.load_images(filenames)
+        out_dir = self.edit1.text()
+        self.stitched_image = image_func.image_stitch(images, out_dir)
+        if self.stitched_image is None:
+            self.label2.setText('拼接失败，请检查拍摄的输入图像，需要保证25%的重合拍摄!')
+            self.label2.repaint()
+        else:
+            self.label2.setText('拼接成功!')
+            self.label2.repaint()
+            # display the image
+            out_jpg = QPixmap(out_dir + '/stitched.jpg', )
+            self.label4.setImage(out_jpg)
+            self.label4.repaint()
 
 app = QApplication(sys.argv)
 window = MainWindow()
