@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 import sys
 import cv2
+import copy
 
 
 WINDOW_WIDTH = 720
@@ -51,7 +52,7 @@ class MainWindow(QMainWindow):
         label0.setAlignment(Qt.AlignCenter)
         vbox.addWidget(label0,0,0)
         butn0 = QPushButton('图像拼接')
-        butn1 = QPushButton('绘制图像轮廓')
+        butn1 = QPushButton('提取图像轮廓')
         butn2 = QPushButton('计算颜色统计图')
         butn3 = QPushButton('图像网格化')
         vbox.addWidget(butn0,1,0)
@@ -115,7 +116,6 @@ class MainWindow(QMainWindow):
         self.dynamic_widget_buttn0()
 
 
-
     def setLabel4_backgroud(self):
         pe = QPalette()
         pe.setColor(QPalette.Background,Qt.black)
@@ -128,24 +128,33 @@ class MainWindow(QMainWindow):
             self.label2.repaint()
             return
         else:
-            self.label2.setText('开始绘制图像轮廓，请等待....')
+            self.label2.setText('开始提取图像轮廓，请等待....')
             self.label2.repaint()
-        cx, cy, c, max_x, max_y, min_x, min_y = image_func.get_contour(self.stitched_image)
-        img = image_func.draw_grid(self.stitched_image,cx,cy,8,max_x,max_y,min_x,min_y)
-        img1 = cv2.cvtColor(img,cv2.COLOR_BGR2RGB)
-        QImg = QImage(img1.data, img.shape[1], img.shape[0], 3 * img.shape[1], QImage.Format_RGB888)
+        cx, cy, c, max_x, max_y, min_x, min_y,self.img_contour = image_func.get_contour(self.stitched_image)
+        if cx is None:
+            self.label2.setText('提取失败，请检查拼接图像是否正常！')
+            self.label2.repaint()
+            return
+        self.contour_list = (cx,cy,max_x,max_y,min_x,min_y)
+        img_out = self.img_contour
+        img1 = cv2.cvtColor(img_out,cv2.COLOR_BGR2RGB)
+        QImg = QImage(img1.data, img1.shape[1], img1.shape[0], 3 * img1.shape[1], QImage.Format_RGB888)
         pixmap = QPixmap.fromImage(QImg)
         self.label4.setImage(pixmap)
         self.label4.repaint()
-        self.label2.setText('绘制完成！')
+        self.label2.setText('提取成功！')
         self.label2.repaint()
 
     def OnClickButton2(self):
-        print("clicked")
+        self.label2.setText('开始计算颜色直方图(色域：HSV)，请等待....')
+        self.label2.repaint()
+        image_func.get_histogram(self.stitched_image)
+        self.label2.setText('开始显示!')
+        self.label2.repaint()
 
 
     def OnClickButton3(self):
-        self.dynamic_widget_buttn0()
+        self.dynamic_widget_button3()
 
 
     def dynamic_widget_buttn0(self):
@@ -203,6 +212,43 @@ class MainWindow(QMainWindow):
             out_jpg = QPixmap(out_dir + '/stitched.jpg', )
             self.label4.setImage(out_jpg)
             self.label4.repaint()
+
+    def dynamic_widget_button3(self):
+        vbox = QGridLayout()
+        self.widget_button3 = QWidget()
+        self.widget_button3.setWindowTitle('网格化行列设置')
+        label0 = QLabel('网格行数设置:')
+        self.button3_edit0 = QLineEdit()
+        label1 = QLabel('网格列数设置:')
+        self.button3_edit1 = QLineEdit()
+        self.button3_start = QPushButton('开始')
+        self.button3_start.clicked.connect(self.OnClickedButton3Start)
+        vbox.addWidget(label0,0,0)
+        vbox.addWidget(self.button3_edit0,0,1)
+        vbox.addWidget(label1,1,0)
+        vbox.addWidget(self.button3_edit1,1,1)
+        vbox.addWidget(self.button3_start,2,0)
+        self.widget_button3.setLayout(vbox)
+        self.widget_button3.setWindowFlags(Qt.WindowStaysOnTopHint)
+        self.widget_button3.move(100, 100)
+        self.widget_button3.show()
+
+    def OnClickedButton3Start(self):
+        self.widget_button3.close()
+
+        self.label2.repaint()
+        row = self.button3_edit0.text()
+        col = self.button3_edit1.text()
+        text = '网格行数：'+row+',网格列数:'+col+'\n'+'开始网格化！'
+        self.label2.setText(text)
+        (cx, cy, max_x, max_y, min_x, min_y) = self.contour_list
+        img_copy = copy.deepcopy(self.img_contour)
+        img_out = image_func.draw_grid(img_copy,cx,cy,max_x,max_y,min_x,min_y,int(row),int(col))
+        img1 = cv2.cvtColor(img_out, cv2.COLOR_BGR2RGB)
+        QImg = QImage(img1.data, img1.shape[1], img1.shape[0], 3 * img1.shape[1], QImage.Format_RGB888)
+        pixmap = QPixmap.fromImage(QImg)
+        self.label4.setImage(pixmap)
+        self.label4.repaint()
 
 app = QApplication(sys.argv)
 window = MainWindow()

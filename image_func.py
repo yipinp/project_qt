@@ -97,7 +97,6 @@ def generate_image_from_mask(img,mask_hsv,cx,cy,max_x,max_y,min_x,min_y,grid_siz
 
 def get_contour(img_in):
     #convert to binary image for contour
-
     img = cv2.cvtColor(img_in,cv2.COLOR_BGR2GRAY)
     img_binary = cv2.Canny(img,0,100)
     image, contours, hierarchy = cv2.findContours(img_binary, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
@@ -111,8 +110,10 @@ def get_contour(img_in):
         cv2.polylines(img_in,c,True,RED,20)
         cx,cy = calculate_moment(c)
         cv2.circle(img_in,(cx,cy),30,RED,-1)
+    else:
+        cx = None
 
-    return cx,cy,c,max_x,max_y,min_x,min_y
+    return cx,cy,c,max_x,max_y,min_x,min_y,img_in
 
 
 def calculate_moment(c):
@@ -120,25 +121,25 @@ def calculate_moment(c):
     cx,  cy = int(M['m10']/M['m00']), int(M['m01']/M['m00'])
     return cx, cy
 
-def draw_grid(img,cx,cy,size,max_x,max_y,min_x,min_y,color=GREEN):
-    dx = img.shape[1]//size
-    dy = img.shape[0]//size
-    print(cy,cx)
-
+def draw_grid(img,cx,cy,max_x,max_y,min_x,min_y,row,col,color=GREEN):
+    dx = img.shape[1]//col
+    dy = img.shape[0]//row
+    print(dx,dy,img.shape[1],img.shape[0])
+    lineWidth = 10
     for pt_y in np.arange(cy,min_y,-dy):
-        cv2.line(img,(min_x,pt_y),(max_x,pt_y),color,5)
+        cv2.line(img,(min_x,pt_y),(max_x,pt_y),color,lineWidth)
 
     for pt_y in np.arange(cy,max_y,dy):
-        cv2.line(img, (min_x,pt_y), (max_x,pt_y),color,5)
+        cv2.line(img, (min_x,pt_y), (max_x,pt_y),color,lineWidth)
 
     for pt_x in np.arange(cx,min_x,-dx):
-        cv2.line(img,(pt_x,min_y),(pt_x,max_y),color,5)
+        cv2.line(img,(pt_x,min_y),(pt_x,max_y),color,lineWidth)
 
     for pt_x in np.arange(cx,max_x,dx):
-        cv2.line(img, (pt_x,min_y), (pt_x,max_y),color,5)
+        cv2.line(img, (pt_x,min_y), (pt_x,max_y),color,lineWidth)
 
     #draw external rectangle
-    cv2.rectangle(img,(min_x,min_y),(max_x,max_y),color,3)
+    cv2.rectangle(img,(min_x,min_y),(max_x,max_y),color,lineWidth)
 
     cv2.imwrite('grid.jpg',img)
     return img
