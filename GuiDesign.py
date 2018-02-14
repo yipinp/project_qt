@@ -322,7 +322,13 @@ class MainWindow(QMainWindow):
         mask_hsv = image_func.get_color_mask_image(self.stitched_image,low_range,high_range)
         mask_hsv = image_func.generate_final_mask(mask_hsv,c,remove_enable)
 
-        image_func.generate_image_from_mask(self.stitched_image,mask_hsv,cx,cy,max_x,max_y,min_x,min_y,6)
+        res = image_func.generate_image_from_mask(self.stitched_image,mask_hsv,cx,cy,max_x,max_y,min_x,min_y,6)
+        img1 = cv2.cvtColor(res, cv2.COLOR_BGR2RGB)
+        QImg = QImage(img1.data, img1.shape[1], img1.shape[0], 3 * img1.shape[1], QImage.Format_RGB888)
+        pixmap = QPixmap.fromImage(QImg)
+        self.label4.setImage(pixmap)
+        self.label4.repaint()
+
 
 app = QApplication(sys.argv)
 window = MainWindow()

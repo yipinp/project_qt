@@ -10,6 +10,7 @@ SPLIT_SIZE = 3
 GREEN = (0,255,0)
 BLUE   = (255,0,0)
 RED  = (0,0,255)
+LINEWIDTH = 10
 
 def scan_directory(selected_dir):
     input_image_list = []
@@ -96,7 +97,7 @@ def get_color_mask_image(img,hsv_low_range,hsv_high_range):
 
 def generate_final_mask(mask_hsv,c,mode):
     if mode == 1:
-        mask_hsv = 255 - mask_hsv
+        mask_hsv = cv2.bitwise_not(mask_hsv)
 
     for i in range(c.shape[0]):
         mask_hsv[c[i,0,1],c[i,0,0]] = 255
@@ -105,12 +106,15 @@ def generate_final_mask(mask_hsv,c,mode):
 
 def generate_image_from_mask(img,mask_hsv,cx,cy,max_x,max_y,min_x,min_y,grid_size):
     res = cv2.bitwise_and(img,img,mask = mask_hsv)
-    cv2.line(res,(cx,min_y),(cx,max_y),(255,0,0),5)
-    cv2.line(res,(min_x,cy),(max_x,cy),(0,255,0),5)
+    cv2.line(res,(cx,min_y),(cx,max_y),(255,0,0),LINEWIDTH)
+    cv2.line(res,(min_x,cy),(max_x,cy),(0,255,0),LINEWIDTH)
     cv2.circle(res, (cx, cy), 30, GREEN, -1)
+    cv2.imwrite('res.jpg',res)
+    cv2.imwrite('mask.jpg', mask_hsv)
+    return res
    # draw_grid(res,cx,cy,grid_size,max_x,max_y,min_x,min_y)
-    cv2.imwrite('masked_image.jpg',res)
-    cv2.imwrite('mask.jpg',mask_hsv)
+   #  cv2.imwrite('masked_image.jpg',res)
+   #  cv2.imwrite('mask.jpg',mask_hsv)
 
 def get_contour(img_in):
     #convert to binary image for contour
@@ -142,21 +146,20 @@ def draw_grid(img,cx,cy,max_x,max_y,min_x,min_y,row,col,color=GREEN):
     dx = img.shape[1]//col
     dy = img.shape[0]//row
     print(dx,dy,img.shape[1],img.shape[0])
-    lineWidth = 10
     for pt_y in np.arange(cy,min_y,-dy):
-        cv2.line(img,(min_x,pt_y),(max_x,pt_y),color,lineWidth)
+        cv2.line(img,(min_x,pt_y),(max_x,pt_y),color,LINEWIDTH)
 
     for pt_y in np.arange(cy,max_y,dy):
-        cv2.line(img, (min_x,pt_y), (max_x,pt_y),color,lineWidth)
+        cv2.line(img, (min_x,pt_y), (max_x,pt_y),color,LINEWIDTH)
 
     for pt_x in np.arange(cx,min_x,-dx):
-        cv2.line(img,(pt_x,min_y),(pt_x,max_y),color,lineWidth)
+        cv2.line(img,(pt_x,min_y),(pt_x,max_y),color,LINEWIDTH)
 
     for pt_x in np.arange(cx,max_x,dx):
-        cv2.line(img, (pt_x,min_y), (pt_x,max_y),color,lineWidth)
+        cv2.line(img, (pt_x,min_y), (pt_x,max_y),color,LINEWIDTH)
 
     #draw external rectangle
-    cv2.rectangle(img,(min_x,min_y),(max_x,max_y),color,lineWidth)
+    cv2.rectangle(img,(min_x,min_y),(max_x,max_y),color,LINEWIDTH)
 
     cv2.imwrite('grid.jpg',img)
     return img
