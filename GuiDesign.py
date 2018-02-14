@@ -5,6 +5,7 @@ from PyQt5.QtCore import *
 import sys
 import cv2
 import copy
+import numpy as np
 
 
 WINDOW_WIDTH = 720
@@ -53,12 +54,14 @@ class MainWindow(QMainWindow):
         vbox.addWidget(label0,0,0)
         butn0 = QPushButton('图像拼接')
         butn1 = QPushButton('提取图像轮廓')
-        butn2 = QPushButton('计算颜色统计图')
+        butn2 = QPushButton('HSV 3D直方图统计')
         butn3 = QPushButton('图像网格化')
+        butn4 = QPushButton('组分图像生成')
         vbox.addWidget(butn0,1,0)
         vbox.addWidget(butn1,2,0)
         vbox.addWidget(butn2,3,0)
         vbox.addWidget(butn3,4,0)
+        vbox.addWidget(butn4,5,0)
         hwg1.setLayout(vbox)
 
 
@@ -110,6 +113,7 @@ class MainWindow(QMainWindow):
         butn1.clicked.connect(self.OnClickButton1)
         butn2.clicked.connect(self.OnClickButton2)
         butn3.clicked.connect(self.OnClickButton3)
+        butn4.clicked.connect(self.OnClickButton4)
 
 
     def OnClickButton0(self):
@@ -135,7 +139,7 @@ class MainWindow(QMainWindow):
             self.label2.setText('提取失败，请检查拼接图像是否正常！')
             self.label2.repaint()
             return
-        self.contour_list = (cx,cy,max_x,max_y,min_x,min_y)
+        self.contour_list = (cx,cy,c,max_x,max_y,min_x,min_y)
         img_out = self.img_contour
         img1 = cv2.cvtColor(img_out,cv2.COLOR_BGR2RGB)
         QImg = QImage(img1.data, img1.shape[1], img1.shape[0], 3 * img1.shape[1], QImage.Format_RGB888)
@@ -148,7 +152,7 @@ class MainWindow(QMainWindow):
     def OnClickButton2(self):
         self.label2.setText('开始计算颜色直方图(色域：HSV)，请等待....')
         self.label2.repaint()
-        image_func.get_histogram(self.stitched_image)
+        image_func.get_histogram_3d(self.stitched_image)
         self.label2.setText('开始显示!')
         self.label2.repaint()
 
@@ -241,7 +245,7 @@ class MainWindow(QMainWindow):
         col = self.button3_edit1.text()
         text = '网格行数：'+row+',网格列数:'+col+'\n'+'开始网格化！'
         self.label2.setText(text)
-        (cx, cy, max_x, max_y, min_x, min_y) = self.contour_list
+        (cx, cy, c,max_x, max_y, min_x, min_y) = self.contour_list
         img_copy = copy.deepcopy(self.img_contour)
         img_out = image_func.draw_grid(img_copy,cx,cy,max_x,max_y,min_x,min_y,int(row),int(col))
         img1 = cv2.cvtColor(img_out, cv2.COLOR_BGR2RGB)
@@ -249,6 +253,76 @@ class MainWindow(QMainWindow):
         pixmap = QPixmap.fromImage(QImg)
         self.label4.setImage(pixmap)
         self.label4.repaint()
+        text = '网格行数：' + row + ',网格列数:' + col + '\n' + '显示网格！\n（注意：当行列设置不恰当，边界上的网格可能不均匀）'
+        self.label2.setText(text)
+
+
+    def OnClickButton4(self):
+        self.dynamic_widget_button4()
+
+
+    def dynamic_widget_button4(self):
+        vbox = QGridLayout()
+        self.widget_button4 = QWidget()
+        self.widget_button4.setWindowTitle('选择HSV颜色区间')
+        label0 = QLabel('(颜色通道H) from:')
+        self.button4_edit0 = QLineEdit()
+        label1= QLabel('to:')
+        self.button4_edit1 = QLineEdit()
+        label2 = QLabel('(颜色通道S) from：')
+        self.button4_edit2 = QLineEdit()
+        label3 = QLabel('to:')
+        self.button4_edit3 = QLineEdit()
+        label4 = QLabel('(颜色通道V) from:')
+        self.button4_edit4 = QLineEdit()
+        label5 = QLabel('to:')
+        self.button4_edit5 = QLineEdit()
+
+        self.checkbox0 = QCheckBox('去除')
+
+        vbox.addWidget(label0,0,0)
+        vbox.addWidget(self.button4_edit0,0,1)
+        vbox.addWidget(label1,0,2)
+        vbox.addWidget(self.button4_edit1,0,3)
+
+        vbox.addWidget(label2, 1, 0)
+        vbox.addWidget(self.button4_edit2, 1, 1)
+        vbox.addWidget(label3, 1, 2)
+        vbox.addWidget(self.button4_edit3, 1, 3)
+
+        vbox.addWidget(label4, 2, 0)
+        vbox.addWidget(self.button4_edit4, 2, 1)
+        vbox.addWidget(label5, 2, 2)
+        vbox.addWidget(self.button4_edit5, 2, 3)
+
+
+        vbox.addWidget(self.checkbox0,3,0)
+        self.button4_start = QPushButton('开始')
+        vbox.addWidget(self.button4_start,3,1)
+        self.button4_start.clicked.connect(self.OnClickedButton4Start)
+        self.widget_button4.setLayout(vbox)
+        self.widget_button4.setWindowFlags(Qt.WindowStaysOnTopHint)
+        self.widget_button4.move(100, 100)
+        self.widget_button4.show()
+
+    def OnClickedButton4Start(self):
+        self.widget_button4.close()
+
+        h_low = int(self.button4_edit0.text())
+        h_high = int(self.button4_edit1.text())
+        s_low = int(self.button4_edit2.text())
+        s_high = int(self.button4_edit3.text())
+        v_low = int(self.button4_edit4.text())
+        v_high = int(self.button4_edit5.text())
+        remove_enable = int(self.checkbox0.isChecked())
+
+        low_range = np.array([h_low,s_low,v_low])
+        high_range = np.array([h_high,s_high,v_high])
+        (cx, cy, c,max_x, max_y, min_x, min_y) = self.contour_list
+        mask_hsv = image_func.get_color_mask_image(self.stitched_image,low_range,high_range)
+        mask_hsv = image_func.generate_final_mask(mask_hsv,c,remove_enable)
+
+        image_func.generate_image_from_mask(self.stitched_image,mask_hsv,cx,cy,max_x,max_y,min_x,min_y,6)
 
 app = QApplication(sys.argv)
 window = MainWindow()
