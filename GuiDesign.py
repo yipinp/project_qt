@@ -278,6 +278,11 @@ class MainWindow(QMainWindow):
         label5 = QLabel('to:')
         self.button4_edit5 = QLineEdit()
 
+        label6 = QLabel('网格设置 行数：')
+        self.button4_edit6 = QLineEdit()
+        label7 = QLabel('列数:')
+        self.button4_edit7 = QLineEdit()
+
         self.checkbox0 = QCheckBox('去除')
 
         vbox.addWidget(label0,0,0)
@@ -295,10 +300,14 @@ class MainWindow(QMainWindow):
         vbox.addWidget(label5, 2, 2)
         vbox.addWidget(self.button4_edit5, 2, 3)
 
+        vbox.addWidget(label6, 3, 0)
+        vbox.addWidget(self.button4_edit6, 3, 1)
+        vbox.addWidget(label7, 3, 2)
+        vbox.addWidget(self.button4_edit7, 3, 3)
 
-        vbox.addWidget(self.checkbox0,3,0)
+        vbox.addWidget(self.checkbox0,4,0)
         self.button4_start = QPushButton('开始')
-        vbox.addWidget(self.button4_start,3,1)
+        vbox.addWidget(self.button4_start,4,1)
         self.button4_start.clicked.connect(self.OnClickedButton4Start)
         self.widget_button4.setLayout(vbox)
         self.widget_button4.setWindowFlags(Qt.WindowStaysOnTopHint)
@@ -314,6 +323,8 @@ class MainWindow(QMainWindow):
         s_high = int(self.button4_edit3.text())
         v_low = int(self.button4_edit4.text())
         v_high = int(self.button4_edit5.text())
+        row  =  int(self.button4_edit6.text())
+        col  =  int(self.button4_edit7.text())
         remove_enable = int(self.checkbox0.isChecked())
 
         low_range = np.array([h_low,s_low,v_low])
@@ -322,7 +333,7 @@ class MainWindow(QMainWindow):
         mask_hsv = image_func.get_color_mask_image(self.stitched_image,low_range,high_range)
         mask_hsv = image_func.generate_final_mask(mask_hsv,c,remove_enable)
 
-        res = image_func.generate_image_from_mask(self.stitched_image,mask_hsv,cx,cy,max_x,max_y,min_x,min_y,6)
+        res = image_func.generate_image_from_mask(self.stitched_image,mask_hsv,cx,cy,max_x,max_y,min_x,min_y,row,col)
         img1 = cv2.cvtColor(res, cv2.COLOR_BGR2RGB)
         QImg = QImage(img1.data, img1.shape[1], img1.shape[0], 3 * img1.shape[1], QImage.Format_RGB888)
         pixmap = QPixmap.fromImage(QImg)

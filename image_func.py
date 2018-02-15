@@ -104,17 +104,15 @@ def generate_final_mask(mask_hsv,c,mode):
 
     return mask_hsv
 
-def generate_image_from_mask(img,mask_hsv,cx,cy,max_x,max_y,min_x,min_y,grid_size):
+def generate_image_from_mask(img,mask_hsv,cx,cy,max_x,max_y,min_x,min_y,row,col):
     res = cv2.bitwise_and(img,img,mask = mask_hsv)
     cv2.line(res,(cx,min_y),(cx,max_y),(255,0,0),LINEWIDTH)
     cv2.line(res,(min_x,cy),(max_x,cy),(0,255,0),LINEWIDTH)
     cv2.circle(res, (cx, cy), 30, GREEN, -1)
-    cv2.imwrite('res.jpg',res)
-    cv2.imwrite('mask.jpg', mask_hsv)
+    draw_grid(res,cx,cy,max_x,max_y,min_x,min_y,row,col)
+    cv2.imwrite('masked_image.jpg',res)
+    cv2.imwrite('mask.jpg',mask_hsv)
     return res
-   # draw_grid(res,cx,cy,grid_size,max_x,max_y,min_x,min_y)
-   #  cv2.imwrite('masked_image.jpg',res)
-   #  cv2.imwrite('mask.jpg',mask_hsv)
 
 def get_contour(img_in):
     #convert to binary image for contour
@@ -160,8 +158,6 @@ def draw_grid(img,cx,cy,max_x,max_y,min_x,min_y,row,col,color=GREEN):
 
     #draw external rectangle
     cv2.rectangle(img,(min_x,min_y),(max_x,max_y),color,LINEWIDTH)
-
-    cv2.imwrite('grid.jpg',img)
     return img
 
 def get_statistics_per_bin():
