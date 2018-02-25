@@ -3,7 +3,9 @@ import os.path
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+import xlwt
 from mpl_toolkits.mplot3d import Axes3D
+#from numpy import arange,max,min,reshape
 
 OVERLAP = 0.3
 SPLIT_SIZE = 3
@@ -75,7 +77,7 @@ def get_histogram_3d(img):
     print(img.shape)
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     h,s,v = cv2.split(hsv)
-    fig = plt.figure()
+    fig = plt.figure('HSV 3D颜色统计直方图')
 
     ax = fig.add_subplot(111, projection='3d')
     for x, c, z in zip([h,s,v], ['r', 'g', 'b'], [30, 20, 10]):
@@ -101,6 +103,7 @@ def generate_final_mask(mask_hsv,c,mode):
 
     for i in range(c.shape[0]):
         mask_hsv[c[i,0,1],c[i,0,0]] = 255
+        print(c[i,0,1],c[i,0,0])
 
     return mask_hsv
 
@@ -143,7 +146,7 @@ def calculate_moment(c):
 def draw_grid(img,cx,cy,max_x,max_y,min_x,min_y,row,col,color=GREEN):
     dx = img.shape[1]//col
     dy = img.shape[0]//row
-    print(dx,dy,img.shape[1],img.shape[0])
+    #print(dx,dy,img.shape[1],img.shape[0])
     for pt_y in np.arange(cy,min_y,-dy):
         cv2.line(img,(min_x,pt_y),(max_x,pt_y),color,LINEWIDTH)
 
@@ -160,25 +163,109 @@ def draw_grid(img,cx,cy,max_x,max_y,min_x,min_y,row,col,color=GREEN):
     cv2.rectangle(img,(min_x,min_y),(max_x,max_y),color,LINEWIDTH)
     return img
 
-def get_statistics_per_bin():
-    pass
+def get_grid_info(mask_hsv,cx,cy,max_x,max_y,min_x,min_y,row,col):
+    dx = mask_hsv.shape[1]//col
+    dy = mask_hsv.shape[0]//row
+
+    grid_row = []
+    half_row_num = np.ceil((cy - min_y)/dy)
+    #check the first row if not even grid split
+    grid_row.append((cy-min_y)%dy)
+    for i in np.arange(half_row_num - 1):
+        grid_row.append(dy)
+    half_row_num = np.ceil((max_y-cy)/dy)
+
+    for i in np.arange(half_row_num - 1):
+        grid_row.append(dy)
+    #check the last row if not even grid split
+    grid_row.append((max_y-cy)%dy)
+
+    grid_col = []
+    half_col_num = np.ceil((cx - min_x) / dx)
+    # check the first col if not even grid split
+    grid_col.append((cx - min_x) % dx)
+    for i in np.arange(half_col_num - 1):
+        grid_col.append(dx)
+    half_col_num = np.ceil((max_x - cx) / dx)
+
+    for i in np.arange(half_col_num - 1):
+        grid_col.append(dx)
+    # check the last col if not even grid split
+    grid_col.append((max_x - cx) % dx)
+
+    return grid_row,grid_col
+
+def get_statistics_per_bin(mask_hsv,grid_row,grid_col):
+    #open excel
+    data = xlwt.Workbook(encoding='utf-8',style_compression=0)
+    sheet = data.add_sheet('网格统计',cell_overwrite_ok=True)
+
+    #write header
+    sheet.col(0).width = 256*20
+    sheet.write(0,0,'网格坐标(行,列)')
+    sheet.col(1).width = 256 * 12
+    sheet.write(0,1,'网格面积')
+    sheet.col(2).width = 256 * 20
+    sheet.write(0,2,'组分图像面积')
+    sheet.write(0,3,'百分比')
+
+    #grid area calculation
+    index = 0
+    start_x = 0
+    start_y = 0
+    end_x = 0
+    end_y = 0
+    total = 0
+    for i in range(len(grid_row)):
+        end_y += grid_row[i]
+        for j in range(len(grid_col)):
+            index = index + 1
+            sheet.write(index, 0, '%d,%d' % (i, j))
+            area = grid_row[i]*grid_col[j]
+            end_x += grid_col[j]
+            #print(start_x,end_x,start_y,end_y)
+            mask_area = get_bin_area(mask_hsv,start_x,end_x,start_y,end_y)
+            total += mask_area
+            sheet.write(index,1,int(area))
+            sheet.write(index,2,int(mask_area))
+            style_percent = xlwt.easyxf(num_format_str='0.00%')
+            sheet.write(index,3,int(mask_area)/int(area),style_percent)
+            start_x += grid_col[j]
+
+        start_y += grid_row[i]
+        start_x = 0
+        end_x  = 0
+    data.save(r'.\网格统计信息表.xls')
 
 
+    #scan all bins in raster scan order to calculate the pixel number
+    #write excel file
+
+def get_bin_area(mask_hsv,start_x,end_x,start_y,end_y):
+    num = 0
+    for i in np.arange(start_y,end_y,1):
+        for j in np.arange(start_x,end_x,1):
+            if mask_hsv[i,j] > 0:
+                num = num + 1
+    #print(start_x,end_x,start_y,end_y,num)
+    return num
 
 # #
 # #imageName = r'/home/pyp/project_stitch/project_qt/images/B.jpg'
-# imageName = r'C:\DL_project\project_qt\images\B.jpg'
+imageName = r'C:\DL_project\project_qt\images\B.jpg'
 # # # imgs = create_test_images(imageName)
 # # # image_stitch(imgs,'C:\DL_project\image_proc\output')
 # img = cv2.imread(imageName)
-# # cx,cy,c,max_x,max_y,min_x,min_y = get_contour(img)
-# # #draw_grid(img,cx,cy,8,max_x,max_y,min_x,min_y)
-# get_histogram_3d(img)
-# #
-# # #remove some colors
-# # red_low_range = np.array([125,43,33])
-# # red_high_range = np.array([155,255,100])
-# # # #
-# # mask_hsv = get_color_mask_image(img,red_low_range,red_high_range)
-# # mask_hsv = generate_final_mask(mask_hsv,c,'dfdf')
-# # generate_image_from_mask(img,mask_hsv,cx,cy,max_x,max_y,min_x,min_y,6)
+# cx,cy,c,max_x,max_y,min_x,min_y,image = get_contour(img)
+# draw_grid(img,cx,cy,max_x,max_y,min_x,min_y,8,8)
+# # get_histogram_3d(img)
+#
+# # # #remove some colors
+# red_low_range = np.array([125,43,33])
+# red_high_range = np.array([155,255,100])
+# # # # #
+# mask_hsv = get_color_mask_image(img,red_low_range,red_high_range)
+# mask_hsv = generate_final_mask(mask_hsv,c,1)
+# generate_image_from_mask(img,mask_hsv,cx,cy,max_x,max_y,min_x,min_y,8,8)
+# grid_row,grid_col = get_grid_info(mask_hsv,cx,cy,max_x,max_y,min_x,min_y,8,8)
+# get_statistics_per_bin(mask_hsv,grid_row,grid_col)

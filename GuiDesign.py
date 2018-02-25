@@ -330,9 +330,16 @@ class MainWindow(QMainWindow):
         low_range = np.array([h_low,s_low,v_low])
         high_range = np.array([h_high,s_high,v_high])
         (cx, cy, c,max_x, max_y, min_x, min_y) = self.contour_list
+        if self.contour_list is None:
+            pass
+
+        if self.stitched_image is None:
+            pass
+
         mask_hsv = image_func.get_color_mask_image(self.stitched_image,low_range,high_range)
         mask_hsv = image_func.generate_final_mask(mask_hsv,c,remove_enable)
-
+        grid_row, grid_col = image_func.get_grid_info(mask_hsv, cx, cy, max_x, max_y, min_x, min_y, row, col)
+        image_func.get_statistics_per_bin(mask_hsv,grid_row,grid_col)
         res = image_func.generate_image_from_mask(self.stitched_image,mask_hsv,cx,cy,max_x,max_y,min_x,min_y,row,col)
         img1 = cv2.cvtColor(res, cv2.COLOR_BGR2RGB)
         QImg = QImage(img1.data, img1.shape[1], img1.shape[0], 3 * img1.shape[1], QImage.Format_RGB888)
