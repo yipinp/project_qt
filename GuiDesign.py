@@ -11,7 +11,6 @@ import numpy as np
 WINDOW_WIDTH = 720
 WINDOW_HEIGHT = 576
 
-
 class llabel(QLabel):
     def __init__(self):
         super(llabel, self).__init__()
@@ -317,6 +316,10 @@ class MainWindow(QMainWindow):
     def OnClickedButton4Start(self):
         self.widget_button4.close()
 
+        text = '开始生成组分图像并且抽取统计信息，请等待...'+'\n' + '（注意：当行列设置不恰当，边界上的网格可能不均匀）'
+        self.label2.setText(text)
+        self.label2.repaint()
+
         h_low = int(self.button4_edit0.text())
         h_high = int(self.button4_edit1.text())
         s_low = int(self.button4_edit2.text())
@@ -337,7 +340,7 @@ class MainWindow(QMainWindow):
             pass
 
         mask_hsv = image_func.get_color_mask_image(self.stitched_image,low_range,high_range)
-        mask_hsv = image_func.generate_final_mask(mask_hsv,c,remove_enable)
+        mask_hsv = image_func.generate_final_mask(self.stitched_image,mask_hsv,c,remove_enable)
         grid_row, grid_col = image_func.get_grid_info(mask_hsv, cx, cy, max_x, max_y, min_x, min_y, row, col)
         image_func.get_statistics_per_bin(mask_hsv,grid_row,grid_col)
         res = image_func.generate_image_from_mask(self.stitched_image,mask_hsv,cx,cy,max_x,max_y,min_x,min_y,row,col)
@@ -346,7 +349,9 @@ class MainWindow(QMainWindow):
         pixmap = QPixmap.fromImage(QImg)
         self.label4.setImage(pixmap)
         self.label4.repaint()
-
+        text = '成功完成组分图像的处理！'
+        self.label2.setText(text)
+        self.label2.repaint()
 
 app = QApplication(sys.argv)
 window = MainWindow()

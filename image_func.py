@@ -12,6 +12,7 @@ SPLIT_SIZE = 3
 GREEN = (0,255,0)
 BLUE   = (255,0,0)
 RED  = (0,0,255)
+BACKGROUND_COLOR=np.array([0,0,0])
 LINEWIDTH = 10
 
 def scan_directory(selected_dir):
@@ -97,13 +98,25 @@ def get_color_mask_image(img,hsv_low_range,hsv_high_range):
     mask_hsv = cv2.inRange(img_hsv,hsv_low_range,hsv_high_range)
     return mask_hsv
 
-def generate_final_mask(mask_hsv,c,mode):
+def isBackGround(pixel):
+    if pixel[0] == BACKGROUND_COLOR[0] and pixel[1] == BACKGROUND_COLOR[1] and pixel[2] == BACKGROUND_COLOR[2]:
+        return True
+    else:
+        return False
+
+def generate_final_mask(img,mask_hsv,c,mode):
+    print(img.shape,mask_hsv.shape)
     if mode == 1:
         mask_hsv = cv2.bitwise_not(mask_hsv)
+        #reset background
+        for i in range(img.shape[0]):
+            for j in range(img.shape[1]):
+                if isBackGround(img[i,j,:]) == True:
+                    mask_hsv[i,j] = 0
 
     for i in range(c.shape[0]):
         mask_hsv[c[i,0,1],c[i,0,0]] = 255
-        print(c[i,0,1],c[i,0,0])
+        #print(c[i,0,1],c[i,0,0])
 
     return mask_hsv
 
@@ -114,7 +127,7 @@ def generate_image_from_mask(img,mask_hsv,cx,cy,max_x,max_y,min_x,min_y,row,col)
     cv2.circle(res, (cx, cy), 30, GREEN, -1)
     draw_grid(res,cx,cy,max_x,max_y,min_x,min_y,row,col)
     cv2.imwrite('masked_image.jpg',res)
-    cv2.imwrite('mask.jpg',mask_hsv)
+    #cv2.imwrite('mask.jpg',mask_hsv)
     return res
 
 def get_contour(img_in):
@@ -128,7 +141,7 @@ def get_contour(img_in):
         c_reshape = np.reshape(c,(-1,2))
         max_x,max_y = np.max(c_reshape,axis=0)
         min_x,min_y = np.min(c_reshape,axis=0)
-        print(min_x,min_y,max_x,max_y)
+        #print(min_x,min_y,max_x,max_y)
         cv2.polylines(img_in,c,True,RED,20)
         cx,cy = calculate_moment(c)
         cv2.circle(img_in,(cx,cy),30,RED,-1)
@@ -247,12 +260,11 @@ def get_bin_area(mask_hsv,start_x,end_x,start_y,end_y):
         for j in np.arange(start_x,end_x,1):
             if mask_hsv[i,j] > 0:
                 num = num + 1
-    #print(start_x,end_x,start_y,end_y,num)
     return num
 
 # #
 # #imageName = r'/home/pyp/project_stitch/project_qt/images/B.jpg'
-imageName = r'C:\DL_project\project_qt\images\B.jpg'
+# imageName = r'C:\DL_project\project_qt\images\B.jpg'
 # # # imgs = create_test_images(imageName)
 # # # image_stitch(imgs,'C:\DL_project\image_proc\output')
 # img = cv2.imread(imageName)
