@@ -12,7 +12,7 @@ SPLIT_SIZE = 3
 GREEN = (0,255,0)
 BLUE   = (255,0,0)
 RED  = (0,0,255)
-BACKGROUND_COLOR = np.array([0,0,0])
+BACKGROUND_COLOR = np.array([255,255,255])
 LINEWIDTH = 10
 
 '''
@@ -156,6 +156,7 @@ def generate_final_mask(img,mask_hsv,c,mode):
     for i in range(c.shape[0]):
         mask_hsv[c[i,0,1],c[i,0,0]] = 255
 
+    cv2.imwrite('mask_hsv.jpg',mask_hsv)
     return mask_hsv
 
 def generate_image_from_mask(img,mask_hsv,cx,cy,max_x,max_y,min_x,min_y,row,col):
@@ -195,27 +196,50 @@ def draw_grid(img,cx,cy,max_x,max_y,min_x,min_y,row,col,color=GREEN):
 '''
      function 5 : create grid and calculate bin area statistics
 '''
-def get_grid_info2(mask_hsv,cx,cy,max_x,max_y,min_x,min_y,row,col):
-
+def get_grid_info(mask_hsv,cx,cy,max_x,max_y,min_x,min_y,row,col):
+    dx = mask_hsv.shape[1] // col
+    dy = mask_hsv.shape[0] // row
     #copy from draw grid to match it
     grid_row=[]
+    grid_col=[]
     grid_temp=[]
     for pt_y in np.arange(cy,min_y,-dy):
         grid_temp.append(pt_y)
+
+    if grid_temp[0] != min_y:
+        grid_temp.append(min_y)
     #reorder it
-    for i in range(len(grid_temp),0,-1):
+    for i in np.arange(len(grid_temp)-1,-1,-1):
         grid_row.append(grid_temp[i])
-     
 
-    for pt_x in np.arange(cx,min_x,-dx):
-        cv2.line(img,(pt_x,min_y),(pt_x,max_y),color,LINEWIDTH)
+    for pt_y in np.arange(cy+dy, max_y+1, dy):
+        grid_row.append(pt_y)
 
-    for pt_x in np.arange(cx,max_x,dx):
-        cv2.line(img, (pt_x,min_y), (pt_x,max_y),color,LINEWIDTH)
+    if pt_y != max_y:
+        grid_row.append(max_y)
+
+    #col
+    grid_temp = []
+    for pt_x in np.arange(cx, min_x, -dx):
+        grid_temp.append(pt_x)
+
+    if grid_temp[0] != min_x:
+        grid_temp.append(min_x)
+    # reorder it
+    for i in np.arange(len(grid_temp)-1, -1, -1):
+        grid_col.append(grid_temp[i])
+
+    for pt_x in np.arange(cx+dx, max_x+1, dx):
+        grid_col.append(pt_x)
+
+    if pt_x != max_x:
+        grid_col.append(max_x)
+
+    return grid_row,grid_col
 
 
 
-def get_grid_info(mask_hsv,cx,cy,max_x,max_y,min_x,min_y,row,col):
+def get_grid_info2(mask_hsv,cx,cy,max_x,max_y,min_x,min_y,row,col):
     dx = mask_hsv.shape[1]//col
     dy = mask_hsv.shape[0]//row
 
@@ -287,7 +311,7 @@ def get_statistics_per_bin(mask_hsv,grid_row,grid_col):
         start_y += grid_row[i]
         start_x = 0
         end_x  = 0
-    data.save(r'.\网格统计信息表.xls')
+    data.save(r'./网格统计信息表.xls')
 
 def get_bin_area(mask_hsv,start_x,end_x,start_y,end_y):
     num = 0
@@ -298,21 +322,22 @@ def get_bin_area(mask_hsv,start_x,end_x,start_y,end_y):
     return num
 
 # #
-# #imageName = r'/home/pyp/project_stitch/project_qt/images/B.jpg'
-# imageName = r'C:\DL_project\project_qt\images\B.jpg'
+imageName = r'/home/pyp/project_stitch/project_qt/images/B.jpg'
+#imageName = r'C:\DL_project\project_qt\images\B.jpg'
 # # # imgs = create_test_images(imageName)
 # # # image_stitch(imgs,'C:\DL_project\image_proc\output')
-# img = cv2.imread(imageName)
-# cx,cy,c,max_x,max_y,min_x,min_y,image = get_contour(img)
+img = cv2.imread(imageName)
+cx,cy,c,max_x,max_y,min_x,min_y,image = get_contour(img)
 # draw_grid(img,cx,cy,max_x,max_y,min_x,min_y,8,8)
 # # get_histogram_3d(img)
 #
 # # # #remove some colors
-# red_low_range = np.array([125,43,33])
-# red_high_range = np.array([155,255,100])
+red_low_range = np.array([125,43,33])
+red_high_range = np.array([155,255,100])
 # # # # #
-# mask_hsv = get_color_mask_image(img,red_low_range,red_high_range)
-# mask_hsv = generate_final_mask(mask_hsv,c,1)
-# generate_image_from_mask(img,mask_hsv,cx,cy,max_x,max_y,min_x,min_y,8,8)
-# grid_row,grid_col = get_grid_info(mask_hsv,cx,cy,max_x,max_y,min_x,min_y,8,8)
-# get_statistics_per_bin(mask_hsv,grid_row,grid_col)
+mask_hsv = get_color_mask_image(img,red_low_range,red_high_range)
+mask_hsv = generate_final_mask(img,mask_hsv,c,1)
+
+generate_image_from_mask(img,mask_hsv,cx,cy,max_x,max_y,min_x,min_y,8,8)
+grid_row,grid_col = get_grid_info(mask_hsv,cx,cy,max_x,max_y,min_x,min_y,8,8)
+get_statistics_per_bin(mask_hsv,grid_row,grid_col)
