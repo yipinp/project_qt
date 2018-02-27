@@ -195,6 +195,26 @@ def draw_grid(img,cx,cy,max_x,max_y,min_x,min_y,row,col,color=GREEN):
 '''
      function 5 : create grid and calculate bin area statistics
 '''
+def get_grid_info2(mask_hsv,cx,cy,max_x,max_y,min_x,min_y,row,col):
+
+    #copy from draw grid to match it
+    grid_row=[]
+    grid_temp=[]
+    for pt_y in np.arange(cy,min_y,-dy):
+        grid_temp.append(pt_y)
+    #reorder it
+    for i in range(len(grid_temp),0,-1):
+        grid_row.append(grid_temp[i])
+     
+
+    for pt_x in np.arange(cx,min_x,-dx):
+        cv2.line(img,(pt_x,min_y),(pt_x,max_y),color,LINEWIDTH)
+
+    for pt_x in np.arange(cx,max_x,dx):
+        cv2.line(img, (pt_x,min_y), (pt_x,max_y),color,LINEWIDTH)
+
+
+
 def get_grid_info(mask_hsv,cx,cy,max_x,max_y,min_x,min_y,row,col):
     dx = mask_hsv.shape[1]//col
     dy = mask_hsv.shape[0]//row
