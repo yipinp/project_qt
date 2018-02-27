@@ -1,3 +1,5 @@
+#-*- coding:utf-8 -*-
+
 import image_func
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
@@ -11,6 +13,7 @@ import numpy as np
 WINDOW_WIDTH = 720
 WINDOW_HEIGHT = 576
 
+#define new elements based on QLabel
 class llabel(QLabel):
     def __init__(self):
         super(llabel, self).__init__()
@@ -33,6 +36,22 @@ class MainWindow(QMainWindow):
         super(MainWindow,self).__init__()
         self.setWindowTitle("图像处理程序 版本： 0.8")
         self.resize(WINDOW_WIDTH,WINDOW_HEIGHT)
+        self.stitched_image = None
+        self.img_contour = None
+        self.img_grid = None
+        self.contour_list = None
+
+        #provide font setting
+        self.font_level0 = QFont()
+        self.font_level0.setFamily("宋体")
+        self.font_level0.setPointSizeF(10)
+        self.font_level0.setBold(True)
+
+        self.font_level1 = QFont()
+        self.font_level1.setFamily("宋体")
+        self.font_level1.setPointSizeF(8)
+        self.font_level1.setBold(False)
+
         self.initUI()
 
     def initUI(self):
@@ -44,29 +63,39 @@ class MainWindow(QMainWindow):
         hwg3 = QFrame()
         hwg3.setFrameShape(QFrame.StyledPanel)
 
+        #UI design for main function region
         hbox = QHBoxLayout()
         hsplitter = QSplitter(Qt.Horizontal)
         vbox = QGridLayout()
         vbox.setAlignment(Qt.AlignTop)
         label0 = QLabel('主功能区')
         label0.setAlignment(Qt.AlignCenter)
+        label0.setFont(self.font_level0)
         vbox.addWidget(label0,0,0)
         butn0 = QPushButton('图像拼接')
         butn1 = QPushButton('提取图像轮廓')
         butn2 = QPushButton('HSV 3D直方图统计')
         butn3 = QPushButton('图像网格化')
         butn4 = QPushButton('组分图像生成')
+
+        butn0.setFont(self.font_level1)
+        butn1.setFont(self.font_level1)
+        butn2.setFont(self.font_level1)
+        butn3.setFont(self.font_level1)
+        butn4.setFont(self.font_level1)
+
         vbox.addWidget(butn0,1,0)
         vbox.addWidget(butn1,2,0)
-        vbox.addWidget(butn2,3,0)
-        vbox.addWidget(butn3,4,0)
+        vbox.addWidget(butn2,4,0)
+        vbox.addWidget(butn3,3,0)
         vbox.addWidget(butn4,5,0)
         hwg1.setLayout(vbox)
 
-
+        #UI design for information region
         self.vbox1 = QGridLayout()
         self.vbox1.setAlignment(Qt.AlignTop)
         label1 = QLabel('信息显示区')
+        label1.setFont(self.font_level0)
         label1.setAlignment(Qt.AlignCenter)
         self.vbox1.addWidget(label1,0,0)
         self.label2 = QLabel('准备接收命令...')
@@ -76,19 +105,21 @@ class MainWindow(QMainWindow):
         self.vbox1.setRowStretch(1,80)
         hwg2.setLayout(self.vbox1)
 
-
+        #layout for the first UI row
         hsplitter.addWidget(hwg1)
         hsplitter.addWidget(hwg2)
         hsplitter.setStretchFactor(0,50)
         hsplitter.setStretchFactor(1,50)
         hsplitter.setAutoFillBackground(True)
 
+        #image show region by QLabel
         vsplitter = QSplitter(Qt.Vertical)
         vsplitter.addWidget(hsplitter)
         vbox2 = QVBoxLayout()
         hwg3.setLayout(vbox2)
         vbox2.setAlignment(Qt.AlignTop)
         label3 = QLabel('图片显示区')
+        label3.setFont(self.font_level0)
         label3.setAlignment(Qt.AlignTop|Qt.AlignHCenter)
         vbox2.addWidget(label3)
         self.label4 = llabel()
@@ -108,14 +139,15 @@ class MainWindow(QMainWindow):
         wwg.setLayout(hbox)
         self.setCentralWidget(wwg)
 
-        butn0.clicked.connect(self.OnClickButton0)
-        butn1.clicked.connect(self.OnClickButton1)
-        butn2.clicked.connect(self.OnClickButton2)
-        butn3.clicked.connect(self.OnClickButton3)
-        butn4.clicked.connect(self.OnClickButton4)
+        #bind the event to slot function
+        butn0.clicked.connect(self.OnClickButton_stitch)
+        butn1.clicked.connect(self.OnClickButton_contour)
+        butn2.clicked.connect(self.OnClickButton_histogram)
+        butn3.clicked.connect(self.OnClickButton_grid)
+        butn4.clicked.connect(self.OnClickButton_mask)
 
 
-    def OnClickButton0(self):
+    def OnClickButton_stitch(self):
         self.dynamic_widget_buttn0()
 
 
@@ -125,19 +157,21 @@ class MainWindow(QMainWindow):
         self.label4.setAutoFillBackground(True)
         self.label4.setPalette(pe)
 
-    def OnClickButton1(self):
+    def OnClickButton_contour(self):
         if self.stitched_image is None:
-            self.label2.setText('图像拼接失败，无法进行下一步计算！')
+            self.label2.setText('没有拼接的图像，无法进行下一步计算，请先运行图像拼接命令！')
             self.label2.repaint()
             return
-        else:
-            self.label2.setText('开始提取图像轮廓，请等待....')
-            self.label2.repaint()
-        cx, cy, c, max_x, max_y, min_x, min_y,self.img_contour = image_func.get_contour(self.stitched_image)
+
+        self.label2.setText('开始提取图像轮廓，请等待....')
+        self.label2.repaint()
+        self.img_contour = copy.deepcopy(self.stitched_image)
+        cx, cy, c, max_x, max_y, min_x, min_y, self.img_contour = image_func.get_contour(self.img_contour)
         if cx is None:
             self.label2.setText('提取失败，请检查拼接图像是否正常！')
             self.label2.repaint()
             return
+        #store the contour information
         self.contour_list = (cx,cy,c,max_x,max_y,min_x,min_y)
         img_out = self.img_contour
         img1 = cv2.cvtColor(img_out,cv2.COLOR_BGR2RGB)
@@ -148,7 +182,12 @@ class MainWindow(QMainWindow):
         self.label2.setText('提取成功！')
         self.label2.repaint()
 
-    def OnClickButton2(self):
+    def OnClickButton_histogram(self):
+        if self.stitched_image is None:
+            self.label2.setText('没有拼接的图像，无法进行下一步计算，请先运行图像拼接命令！')
+            self.label2.repaint()
+            return
+
         self.label2.setText('开始计算颜色直方图(色域：HSV)，请等待....')
         self.label2.repaint()
         image_func.get_histogram_3d(self.stitched_image)
@@ -156,7 +195,7 @@ class MainWindow(QMainWindow):
         self.label2.repaint()
 
 
-    def OnClickButton3(self):
+    def OnClickButton_grid(self):
         self.dynamic_widget_button3()
 
 
@@ -201,12 +240,12 @@ class MainWindow(QMainWindow):
         self.label2.repaint()
         stitch_dir = self.edit0.text()
         filenames = image_func.scan_directory(stitch_dir)
-        print(len(filenames))
+        #print(len(filenames))
         images = image_func.load_images(filenames)
         out_dir = self.edit1.text()
         self.stitched_image = image_func.image_stitch(images, out_dir)
         if self.stitched_image is None:
-            self.label2.setText('拼接失败，请检查拍摄的输入图像，需要保证25%的重合拍摄!')
+            self.label2.setText('拼接失败，请检查拍摄的输入图像，需要保证至少25%的重合拍摄!')
             self.label2.repaint()
         else:
             self.label2.setText('拼接成功!')
@@ -239,15 +278,21 @@ class MainWindow(QMainWindow):
     def OnClickedButton3Start(self):
         self.widget_button3.close()
 
+        if self.contour_list is None:
+            text = '网格化失败，请先运行提取轮廓命令！'
+            self.label2.setText(text)
+            self.label2.repaint()
+            return
+
         self.label2.repaint()
         row = self.button3_edit0.text()
         col = self.button3_edit1.text()
         text = '网格行数：'+row+',网格列数:'+col+'\n'+'开始网格化！'
         self.label2.setText(text)
         (cx, cy, c,max_x, max_y, min_x, min_y) = self.contour_list
-        img_copy = copy.deepcopy(self.img_contour)
-        img_out = image_func.draw_grid(img_copy,cx,cy,max_x,max_y,min_x,min_y,int(row),int(col))
-        img1 = cv2.cvtColor(img_out, cv2.COLOR_BGR2RGB)
+        self.img_grid = copy.deepcopy(self.img_contour)
+        self.img_grid = image_func.draw_grid(self.img_grid,cx,cy,max_x,max_y,min_x,min_y,int(row),int(col))
+        img1 = cv2.cvtColor(self.img_grid, cv2.COLOR_BGR2RGB)
         QImg = QImage(img1.data, img1.shape[1], img1.shape[0], 3 * img1.shape[1], QImage.Format_RGB888)
         pixmap = QPixmap.fromImage(QImg)
         self.label4.setImage(pixmap)
@@ -256,7 +301,7 @@ class MainWindow(QMainWindow):
         self.label2.setText(text)
 
 
-    def OnClickButton4(self):
+    def OnClickButton_mask(self):
         self.dynamic_widget_button4()
 
 
@@ -316,6 +361,18 @@ class MainWindow(QMainWindow):
     def OnClickedButton4Start(self):
         self.widget_button4.close()
 
+        if self.stitched_image is None:
+            text = '生成组分图像失败，请先运行图像拼接命令！'
+            self.label2.setText(text)
+            self.label2.repaint()
+            return
+
+        if self.contour_list is None:
+            text = '生成组分图像失败，请先运行提取轮廓命令！'
+            self.label2.setText(text)
+            self.label2.repaint()
+            return
+
         text = '开始生成组分图像并且抽取统计信息，请等待...'+'\n' + '（注意：当行列设置不恰当，边界上的网格可能不均匀）'
         self.label2.setText(text)
         self.label2.repaint()
@@ -333,23 +390,21 @@ class MainWindow(QMainWindow):
         low_range = np.array([h_low,s_low,v_low])
         high_range = np.array([h_high,s_high,v_high])
         (cx, cy, c,max_x, max_y, min_x, min_y) = self.contour_list
-        if self.contour_list is None:
-            pass
-
-        if self.stitched_image is None:
-            pass
 
         mask_hsv = image_func.get_color_mask_image(self.stitched_image,low_range,high_range)
         mask_hsv = image_func.generate_final_mask(self.stitched_image,mask_hsv,c,remove_enable)
         grid_row, grid_col = image_func.get_grid_info(mask_hsv, cx, cy, max_x, max_y, min_x, min_y, row, col)
         image_func.get_statistics_per_bin(mask_hsv,grid_row,grid_col)
         res = image_func.generate_image_from_mask(self.stitched_image,mask_hsv,cx,cy,max_x,max_y,min_x,min_y,row,col)
+        #keep net grid
+        cv2.imwrite('res.jpg',res)
+        cv2.imwrite('new_stitched.jpg',self.stitched_image)
         img1 = cv2.cvtColor(res, cv2.COLOR_BGR2RGB)
         QImg = QImage(img1.data, img1.shape[1], img1.shape[0], 3 * img1.shape[1], QImage.Format_RGB888)
         pixmap = QPixmap.fromImage(QImg)
         self.label4.setImage(pixmap)
         self.label4.repaint()
-        text = '成功完成组分图像的处理！'
+        text = '成功完成组分图像的处理，统计信息已经存储到excel文件中！'
         self.label2.setText(text)
         self.label2.repaint()
 

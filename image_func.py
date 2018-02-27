@@ -12,9 +12,14 @@ SPLIT_SIZE = 3
 GREEN = (0,255,0)
 BLUE   = (255,0,0)
 RED  = (0,0,255)
-BACKGROUND_COLOR=np.array([0,0,0])
+BACKGROUND_COLOR = np.array([0,0,0])
 LINEWIDTH = 10
 
+'''
+        Preprocessing  function
+'''
+
+#scan the directory to get the image list for stitching
 def scan_directory(selected_dir):
     input_image_list = []
     for root, dirs, files in os.walk(selected_dir):
@@ -22,9 +27,7 @@ def scan_directory(selected_dir):
             input_image_list.append(os.path.join(root,name))
     return input_image_list
 
-#  test only
-
-
+#  test only, not normal function.
 def create_test_images(input_image):
     img = cv2.imread(input_image)
     imgs = []
@@ -33,7 +36,6 @@ def create_test_images(input_image):
     height,width = img.shape[:2]
 
     # split the image to 3x3 with overlap
-
     for h in range(size):
         for w in range(size):
             roi = img[max(0,round(((h-overlap)*height)/size)):round(((h+1)*height)/size),max(0,round(((w-overlap)*width)/size)):round(((w+1)*width)/size)]
@@ -47,7 +49,10 @@ def load_images(input_list):
         imgs.append(cv2.imread(input_list[i]))
     return imgs
 
-
+'''
+        function 1 : stitch image
+'''
+#call opencv to stitch the image, if success, the stitched image will be written to output directory
 def image_stitch(imgs, output_dir):
     stitcher = cv2.createStitcher(False)
     result = stitcher.stitch(imgs)
@@ -59,6 +64,38 @@ def image_stitch(imgs, output_dir):
     return result[1]
 
 
+'''
+    function 2 : extract contour and calculate the moment
+'''
+def calculate_moment(c):
+    M = cv2.moments(c)
+    cx,  cy = int(M['m10']/M['m00']), int(M['m01']/M['m00'])
+    return cx, cy
+
+
+#convert to gray image and use the canny to remove some noises before contour extraction
+def get_contour(stitched_image):
+    img_in = stitched_image
+    img = cv2.cvtColor(img_in,cv2.COLOR_BGR2GRAY)
+    img_binary = cv2.Canny(img,0,100)
+    image, contours, hierarchy = cv2.findContours(img_binary, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+    if len(contours) != 0 :
+        c = max(contours, key=cv2.contourArea)
+        c_reshape = np.reshape(c,(-1,2))
+        max_x,max_y = np.max(c_reshape,axis=0)
+        min_x,min_y = np.min(c_reshape,axis=0)
+        cv2.polylines(img_in,c,True,RED,20)
+        cx,cy = calculate_moment(c)
+        cv2.circle(img_in,(cx,cy),30,RED,-1)
+    else:
+        cx = None
+    print(cx,cy,min_x,min_y,max_x,max_y)
+    return cx,cy,c,max_x,max_y,min_x,min_y,img_in
+
+
+'''
+      function 3:  Create histogram for gray or color image (HSV)
+'''
 def get_histogram_gray(img):
     img_gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
     hist = cv2.calcHist([img_gray], [0], None, [256], [0, 256])
@@ -75,7 +112,6 @@ def get_histogram(img):
     return hist
 
 def get_histogram_3d(img):
-    print(img.shape)
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     h,s,v = cv2.split(hsv)
     fig = plt.figure('HSV 3D颜色统计直方图')
@@ -93,6 +129,9 @@ def get_histogram_3d(img):
     ax.set_zlabel('Z')
     plt.show()
 
+'''
+     function 4: image mask generation and  masked image generation (HSV domain)
+'''
 def get_color_mask_image(img,hsv_low_range,hsv_high_range):
     img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     mask_hsv = cv2.inRange(img_hsv,hsv_low_range,hsv_high_range)
@@ -116,7 +155,6 @@ def generate_final_mask(img,mask_hsv,c,mode):
 
     for i in range(c.shape[0]):
         mask_hsv[c[i,0,1],c[i,0,0]] = 255
-        #print(c[i,0,1],c[i,0,0])
 
     return mask_hsv
 
@@ -130,32 +168,9 @@ def generate_image_from_mask(img,mask_hsv,cx,cy,max_x,max_y,min_x,min_y,row,col)
     #cv2.imwrite('mask.jpg',mask_hsv)
     return res
 
-def get_contour(img_in):
-    #convert to binary image for contour
-    img = cv2.cvtColor(img_in,cv2.COLOR_BGR2GRAY)
-    img_binary = cv2.Canny(img,0,100)
-    image, contours, hierarchy = cv2.findContours(img_binary, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
-
-    if len(contours) != 0 :
-        c = max(contours, key=cv2.contourArea)
-        c_reshape = np.reshape(c,(-1,2))
-        max_x,max_y = np.max(c_reshape,axis=0)
-        min_x,min_y = np.min(c_reshape,axis=0)
-        #print(min_x,min_y,max_x,max_y)
-        cv2.polylines(img_in,c,True,RED,20)
-        cx,cy = calculate_moment(c)
-        cv2.circle(img_in,(cx,cy),30,RED,-1)
-    else:
-        cx = None
-
-    return cx,cy,c,max_x,max_y,min_x,min_y,img_in
-
-
-def calculate_moment(c):
-    M = cv2.moments(c)
-    cx,  cy = int(M['m10']/M['m00']), int(M['m01']/M['m00'])
-    return cx, cy
-
+'''
+                Grid generation
+'''
 def draw_grid(img,cx,cy,max_x,max_y,min_x,min_y,row,col,color=GREEN):
     dx = img.shape[1]//col
     dy = img.shape[0]//row
@@ -176,6 +191,10 @@ def draw_grid(img,cx,cy,max_x,max_y,min_x,min_y,row,col,color=GREEN):
     cv2.rectangle(img,(min_x,min_y),(max_x,max_y),color,LINEWIDTH)
     return img
 
+
+'''
+     function 5 : create grid and calculate bin area statistics
+'''
 def get_grid_info(mask_hsv,cx,cy,max_x,max_y,min_x,min_y,row,col):
     dx = mask_hsv.shape[1]//col
     dy = mask_hsv.shape[0]//row
@@ -219,8 +238,9 @@ def get_statistics_per_bin(mask_hsv,grid_row,grid_col):
     sheet.col(1).width = 256 * 12
     sheet.write(0,1,'网格面积')
     sheet.col(2).width = 256 * 20
-    sheet.write(0,2,'组分图像面积')
-    sheet.write(0,3,'百分比')
+    sheet.write(0,2,'网格中组分图像面积')
+    sheet.col(3).width = 256 * 20
+    sheet.write(0,3,'组分图像面积百分比')
 
     #grid area calculation
     index = 0
@@ -236,7 +256,6 @@ def get_statistics_per_bin(mask_hsv,grid_row,grid_col):
             sheet.write(index, 0, '%d,%d' % (i, j))
             area = grid_row[i]*grid_col[j]
             end_x += grid_col[j]
-            #print(start_x,end_x,start_y,end_y)
             mask_area = get_bin_area(mask_hsv,start_x,end_x,start_y,end_y)
             total += mask_area
             sheet.write(index,1,int(area))
@@ -249,10 +268,6 @@ def get_statistics_per_bin(mask_hsv,grid_row,grid_col):
         start_x = 0
         end_x  = 0
     data.save(r'.\网格统计信息表.xls')
-
-
-    #scan all bins in raster scan order to calculate the pixel number
-    #write excel file
 
 def get_bin_area(mask_hsv,start_x,end_x,start_y,end_y):
     num = 0
