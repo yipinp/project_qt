@@ -111,20 +111,21 @@ def get_histogram_3d(img):
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     h,s,v = cv2.split(hsv)
     fig = plt.figure('HSV 3D颜色统计直方图')
-
+    i = 0
+    bars = []
     ax = fig.add_subplot(111, projection='3d')
     for x, c, z in zip([h,s,v], ['r', 'g', 'b'], [30, 20, 10]):
         xs = np.arange(256)
         ys = cv2.calcHist([x], [0], None, [256], [0,256])
         cs = [c] * len(xs)
         cs[0] = 'c'
-        ax.bar(xs, ys.ravel(), zs=z, zdir='y', color=cs, alpha=0.8)
+        bars.append(ax.bar(xs, ys.ravel(), zs=z, zdir='y', color=cs, alpha=0.8))
 
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
 
-    plt.legend()
+    ax.legend((bars[0][2],bars[1][2],bars[2][2]),('H','S','V'))
     plt.show()
 
 '''
@@ -307,6 +308,7 @@ def get_bin_area(mask_hsv,start_x,end_x,start_y,end_y):
 # imageName = r'/home/pyp/project_stitch/project_qt/images/B.jpg'
 # imageName = r'C:\DL_project\project_qt\images\B.jpg'
 # img = cv2.imread(imageName)
+# get_histogram_3d(img)
 # cx,cy,c,max_x,max_y,min_x,min_y,image = get_contour(img)
 # red_low_range = np.array([125,43,33])
 # red_high_range = np.array([155,255,100])
