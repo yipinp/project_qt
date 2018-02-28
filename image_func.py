@@ -14,6 +14,9 @@ BLUE   = (255,0,0)
 RED  = (0,0,255)
 LINEWIDTH = 10
 
+
+BACKGROUND_LOW = np.array([0,0,221])
+BACKGROUND_HIGH = np.array([180,30,255])
 '''
         Preprocessing  function
 '''
@@ -203,10 +206,13 @@ def get_grid_info(mask_hsv,cx,cy,max_x,max_y,min_x,min_y,row,col):
         grid_row.append(grid_temp[i])
 
     for pt_y in np.arange(cy+dy, max_y+1, dy):
-        grid_row.append(pt_y)
+        if pt_y == max_y :
+            grid_row.append(pt_y + 1)
+        else:
+            grid_row.append(pt_y)
 
     if pt_y != max_y:
-        grid_row.append(max_y)
+        grid_row.append(max_y+1)
 
     #col
     grid_temp = []
@@ -220,10 +226,13 @@ def get_grid_info(mask_hsv,cx,cy,max_x,max_y,min_x,min_y,row,col):
         grid_col.append(grid_temp[i])
 
     for pt_x in np.arange(cx+dx, max_x+1, dx):
-        grid_col.append(pt_x)
+        if pt_x == max_x :
+            grid_col.append(pt_x + 1) #last col should be included in the grid
+        else:
+            grid_col.append(pt_x)
 
     if pt_x != max_x:
-        grid_col.append(max_x)
+        grid_col.append(max_x+1)
 
     return grid_row,grid_col
 
@@ -272,16 +281,20 @@ def get_statistics_per_bin(mask_hsv,grid_row,grid_col,out_dir):
     sheet.col(1).width = 256 * 12
     sheet.write(0,1,'网格面积')
     sheet.col(2).width = 256 * 20
-    sheet.write(0,2,'网格中组分图像面积')
-    sheet.col(3).width = 256 * 20
-    sheet.write(0,3,'组分图像面积百分比')
-
+    sheet.write(0,2,'网格组分面积')
+    sheet.col(3).width = 256 * 25
+    sheet.write(0,3,'网格组分占该网格百分比')
+    sheet.col(4).width = 256 * 25
+    sheet.write(0, 4, '网格组分占组分图像百分比')
     #grid area calculation
     index = 0
     total = 0
+
+    mask_area_list = []
     for i in range(len(grid_row) - 1):
         start_y = grid_row[i]
         end_y = grid_row[i + 1]
+
         for j in range(len(grid_col) - 1):
             start_x = grid_col[j]
             end_x = grid_col[j + 1]
@@ -289,11 +302,21 @@ def get_statistics_per_bin(mask_hsv,grid_row,grid_col,out_dir):
             sheet.write(index, 0, '%d,%d' % (i, j))
             area = (end_y - start_y)*(end_x - start_x)
             mask_area = get_bin_area(mask_hsv,start_x,end_x,start_y,end_y)
+            mask_area_list.append(mask_area)
             total += mask_area
             sheet.write(index,1,int(area))
             sheet.write(index,2,int(mask_area))
             style_percent = xlwt.easyxf(num_format_str='0.00%')
             sheet.write(index,3,int(mask_area)/int(area),style_percent)
+
+
+    #update the another percentage
+    index = 0
+    for i in range(len(grid_row) - 1):
+        for j in range(len(grid_col) - 1):
+            index = index + 1
+            sheet.write(index, 4, int(mask_area_list[index-1]) / int(total), style_percent)
+
     data.save(out_dir + './网格统计信息表.xls')
 
 def get_bin_area(mask_hsv,start_x,end_x,start_y,end_y):
@@ -306,14 +329,14 @@ def get_bin_area(mask_hsv,start_x,end_x,start_y,end_y):
 
 # #
 # imageName = r'/home/pyp/project_stitch/project_qt/images/B.jpg'
-# imageName = r'C:\DL_project\project_qt\images\B.jpg'
+# #imageName = r'C:\DL_project\project_qt\images\B.jpg'
 # img = cv2.imread(imageName)
-# get_histogram_3d(img)
+# # get_histogram_3d(img)
 # cx,cy,c,max_x,max_y,min_x,min_y,image = get_contour(img)
 # red_low_range = np.array([125,43,33])
 # red_high_range = np.array([155,255,100])
 # mask_hsv, img_hsv = get_color_mask_image(img,red_low_range,red_high_range)
-# mask_hsv = generate_final_mask(img_hsv,mask_hsv,c,1)
-# generate_image_from_mask(img,mask_hsv,cx,cy,max_x,max_y,min_x,min_y,8,8)
+# mask_hsv = generate_final_mask(img_hsv,mask_hsv,c,1,BACKGROUND_LOW,BACKGROUND_HIGH)
+# generate_image_from_mask(img,mask_hsv,cx,cy,c,max_x,max_y,min_x,min_y,8,8)
 # grid_row,grid_col = get_grid_info(mask_hsv,cx,cy,max_x,max_y,min_x,min_y,8,8)
-# get_statistics_per_bin(mask_hsv,grid_row,grid_col)
+# get_statistics_per_bin(mask_hsv,grid_row,grid_col,'./')
