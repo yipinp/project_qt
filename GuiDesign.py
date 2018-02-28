@@ -11,6 +11,7 @@ import numpy as np
 import os
 
 
+
 WINDOW_WIDTH = 720
 WINDOW_HEIGHT = 576
 BACKGROUND_LOW = np.array([0,0,221])
@@ -244,8 +245,7 @@ class MainWindow(QMainWindow):
         stitch_dir = self.edit0.text()
         filenames = image_func.scan_directory(stitch_dir)
         images = image_func.load_images(filenames)
-        out_dir = self.edit1.text()
-        self.stitched_image = image_func.image_stitch(images, out_dir)
+        self.stitched_image = image_func.image_stitch(images)
         if self.stitched_image is None:
             self.label2.setText('拼接失败，请检查拍摄的输入图像，需要保证至少25%的重合拍摄!')
             self.label2.repaint()

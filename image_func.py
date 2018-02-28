@@ -52,7 +52,7 @@ def load_images(input_list):
         function 1 : stitch image
 '''
 #call opencv to stitch the image, if success, the stitched image will be written to output directory
-def image_stitch(imgs, output_dir):
+def image_stitch(imgs):
     stitcher = cv2.createStitcher(False)
     result = stitcher.stitch(imgs)
     if result[0] != 0 :
