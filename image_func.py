@@ -12,7 +12,6 @@ SPLIT_SIZE = 3
 GREEN = (0,255,0)
 BLUE   = (255,0,0)
 RED  = (0,0,255)
-BACKGROUND_COLOR = np.array([255,255,255])
 LINEWIDTH = 10
 
 '''
@@ -59,10 +58,7 @@ def image_stitch(imgs, output_dir):
     if result[0] != 0 :
         print("Image stitching is failed, please check the input images!")
         return None
-    else:
-        cv2.imwrite(output_dir+'/stitched.jpg',result[1])
     return result[1]
-
 
 '''
     function 2 : extract contour and calculate the moment
@@ -89,7 +85,7 @@ def get_contour(stitched_image):
         cv2.circle(img_in,(cx,cy),30,RED,-1)
     else:
         cx = None
-    print(cx,cy,min_x,min_y,max_x,max_y)
+
     return cx,cy,c,max_x,max_y,min_x,min_y,img_in
 
 
@@ -127,6 +123,8 @@ def get_histogram_3d(img):
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
+
+    plt.legend()
     plt.show()
 
 '''
@@ -135,38 +133,29 @@ def get_histogram_3d(img):
 def get_color_mask_image(img,hsv_low_range,hsv_high_range):
     img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     mask_hsv = cv2.inRange(img_hsv,hsv_low_range,hsv_high_range)
-    return mask_hsv
+    return mask_hsv,img_hsv
 
-def isBackGround(pixel):
-    if pixel[0] == BACKGROUND_COLOR[0] and pixel[1] == BACKGROUND_COLOR[1] and pixel[2] == BACKGROUND_COLOR[2]:
-        return True
-    else:
-        return False
 
-def generate_final_mask(img,mask_hsv,c,mode):
-    print(img.shape,mask_hsv.shape)
+def generate_final_mask(img_hsv,mask_hsv,c,mode,back_ground_low,back_group_high):
     if mode == 1:
         mask_hsv = cv2.bitwise_not(mask_hsv)
-        #reset background
-        for i in range(img.shape[0]):
-            for j in range(img.shape[1]):
-                if isBackGround(img[i,j,:]) == True:
-                    mask_hsv[i,j] = 0
-
+    #always mask the background color
+    mask_background = cv2.inRange(img_hsv,back_ground_low,back_group_high)
+    mask_background = cv2.bitwise_not(mask_background)
+    mask_hsv = cv2.bitwise_and(mask_hsv,mask_background)
     for i in range(c.shape[0]):
         mask_hsv[c[i,0,1],c[i,0,0]] = 255
 
-    cv2.imwrite('mask_hsv.jpg',mask_hsv)
     return mask_hsv
 
-def generate_image_from_mask(img,mask_hsv,cx,cy,max_x,max_y,min_x,min_y,row,col):
+
+def generate_image_from_mask(img,mask_hsv,cx,cy,c,max_x,max_y,min_x,min_y,row,col):
     res = cv2.bitwise_and(img,img,mask = mask_hsv)
     cv2.line(res,(cx,min_y),(cx,max_y),(255,0,0),LINEWIDTH)
     cv2.line(res,(min_x,cy),(max_x,cy),(0,255,0),LINEWIDTH)
-    cv2.circle(res, (cx, cy), 30, GREEN, -1)
+    cv2.polylines(res, c, True, RED, 20)
+    cv2.circle(res, (cx, cy), 30, RED, -1)
     draw_grid(res,cx,cy,max_x,max_y,min_x,min_y,row,col)
-    cv2.imwrite('masked_image.jpg',res)
-    #cv2.imwrite('mask.jpg',mask_hsv)
     return res
 
 '''
@@ -239,39 +228,39 @@ def get_grid_info(mask_hsv,cx,cy,max_x,max_y,min_x,min_y,row,col):
 
 
 
-def get_grid_info2(mask_hsv,cx,cy,max_x,max_y,min_x,min_y,row,col):
-    dx = mask_hsv.shape[1]//col
-    dy = mask_hsv.shape[0]//row
+# def get_grid_info2(mask_hsv,cx,cy,max_x,max_y,min_x,min_y,row,col):
+#     dx = mask_hsv.shape[1]//col
+#     dy = mask_hsv.shape[0]//row
+#
+#     grid_row = []
+#     half_row_num = np.ceil((cy - min_y)/dy)
+#     #check the first row if not even grid split
+#     grid_row.append((cy-min_y)%dy)
+#     for i in np.arange(half_row_num - 1):
+#         grid_row.append(dy)
+#     half_row_num = np.ceil((max_y-cy)/dy)
+#
+#     for i in np.arange(half_row_num - 1):
+#         grid_row.append(dy)
+#     #check the last row if not even grid split
+#     grid_row.append((max_y-cy)%dy)
+#
+#     grid_col = []
+#     half_col_num = np.ceil((cx - min_x) / dx)
+#     # check the first col if not even grid split
+#     grid_col.append((cx - min_x) % dx)
+#     for i in np.arange(half_col_num - 1):
+#         grid_col.append(dx)
+#     half_col_num = np.ceil((max_x - cx) / dx)
+#
+#     for i in np.arange(half_col_num - 1):
+#         grid_col.append(dx)
+#     # check the last col if not even grid split
+#     grid_col.append((max_x - cx) % dx)
+#
+#     return grid_row,grid_col
 
-    grid_row = []
-    half_row_num = np.ceil((cy - min_y)/dy)
-    #check the first row if not even grid split
-    grid_row.append((cy-min_y)%dy)
-    for i in np.arange(half_row_num - 1):
-        grid_row.append(dy)
-    half_row_num = np.ceil((max_y-cy)/dy)
-
-    for i in np.arange(half_row_num - 1):
-        grid_row.append(dy)
-    #check the last row if not even grid split
-    grid_row.append((max_y-cy)%dy)
-
-    grid_col = []
-    half_col_num = np.ceil((cx - min_x) / dx)
-    # check the first col if not even grid split
-    grid_col.append((cx - min_x) % dx)
-    for i in np.arange(half_col_num - 1):
-        grid_col.append(dx)
-    half_col_num = np.ceil((max_x - cx) / dx)
-
-    for i in np.arange(half_col_num - 1):
-        grid_col.append(dx)
-    # check the last col if not even grid split
-    grid_col.append((max_x - cx) % dx)
-
-    return grid_row,grid_col
-
-def get_statistics_per_bin(mask_hsv,grid_row,grid_col):
+def get_statistics_per_bin(mask_hsv,grid_row,grid_col,out_dir):
     #open excel
     data = xlwt.Workbook(encoding='utf-8',style_compression=0)
     sheet = data.add_sheet('网格统计',cell_overwrite_ok=True)
@@ -288,30 +277,23 @@ def get_statistics_per_bin(mask_hsv,grid_row,grid_col):
 
     #grid area calculation
     index = 0
-    start_x = 0
-    start_y = 0
-    end_x = 0
-    end_y = 0
     total = 0
-    for i in range(len(grid_row)):
-        end_y += grid_row[i]
-        for j in range(len(grid_col)):
+    for i in range(len(grid_row) - 1):
+        start_y = grid_row[i]
+        end_y = grid_row[i + 1]
+        for j in range(len(grid_col) - 1):
+            start_x = grid_col[j]
+            end_x = grid_col[j + 1]
             index = index + 1
             sheet.write(index, 0, '%d,%d' % (i, j))
-            area = grid_row[i]*grid_col[j]
-            end_x += grid_col[j]
+            area = (end_y - start_y)*(end_x - start_x)
             mask_area = get_bin_area(mask_hsv,start_x,end_x,start_y,end_y)
             total += mask_area
             sheet.write(index,1,int(area))
             sheet.write(index,2,int(mask_area))
             style_percent = xlwt.easyxf(num_format_str='0.00%')
             sheet.write(index,3,int(mask_area)/int(area),style_percent)
-            start_x += grid_col[j]
-
-        start_y += grid_row[i]
-        start_x = 0
-        end_x  = 0
-    data.save(r'./网格统计信息表.xls')
+    data.save(out_dir + './网格统计信息表.xls')
 
 def get_bin_area(mask_hsv,start_x,end_x,start_y,end_y):
     num = 0
@@ -322,22 +304,14 @@ def get_bin_area(mask_hsv,start_x,end_x,start_y,end_y):
     return num
 
 # #
-imageName = r'/home/pyp/project_stitch/project_qt/images/B.jpg'
-#imageName = r'C:\DL_project\project_qt\images\B.jpg'
-# # # imgs = create_test_images(imageName)
-# # # image_stitch(imgs,'C:\DL_project\image_proc\output')
-img = cv2.imread(imageName)
-cx,cy,c,max_x,max_y,min_x,min_y,image = get_contour(img)
-# draw_grid(img,cx,cy,max_x,max_y,min_x,min_y,8,8)
-# # get_histogram_3d(img)
-#
-# # # #remove some colors
-red_low_range = np.array([125,43,33])
-red_high_range = np.array([155,255,100])
-# # # # #
-mask_hsv = get_color_mask_image(img,red_low_range,red_high_range)
-mask_hsv = generate_final_mask(img,mask_hsv,c,1)
-
-generate_image_from_mask(img,mask_hsv,cx,cy,max_x,max_y,min_x,min_y,8,8)
-grid_row,grid_col = get_grid_info(mask_hsv,cx,cy,max_x,max_y,min_x,min_y,8,8)
-get_statistics_per_bin(mask_hsv,grid_row,grid_col)
+# imageName = r'/home/pyp/project_stitch/project_qt/images/B.jpg'
+# imageName = r'C:\DL_project\project_qt\images\B.jpg'
+# img = cv2.imread(imageName)
+# cx,cy,c,max_x,max_y,min_x,min_y,image = get_contour(img)
+# red_low_range = np.array([125,43,33])
+# red_high_range = np.array([155,255,100])
+# mask_hsv, img_hsv = get_color_mask_image(img,red_low_range,red_high_range)
+# mask_hsv = generate_final_mask(img_hsv,mask_hsv,c,1)
+# generate_image_from_mask(img,mask_hsv,cx,cy,max_x,max_y,min_x,min_y,8,8)
+# grid_row,grid_col = get_grid_info(mask_hsv,cx,cy,max_x,max_y,min_x,min_y,8,8)
+# get_statistics_per_bin(mask_hsv,grid_row,grid_col)

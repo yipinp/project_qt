@@ -8,10 +8,13 @@ import sys
 import cv2
 import copy
 import numpy as np
+import os
 
 
 WINDOW_WIDTH = 720
 WINDOW_HEIGHT = 576
+BACKGROUND_LOW = np.array([0,0,221])
+BACKGROUND_HIGH = np.array([180,30,255])
 
 #define new elements based on QLabel
 class llabel(QLabel):
@@ -240,7 +243,6 @@ class MainWindow(QMainWindow):
         self.label2.repaint()
         stitch_dir = self.edit0.text()
         filenames = image_func.scan_directory(stitch_dir)
-        #print(len(filenames))
         images = image_func.load_images(filenames)
         out_dir = self.edit1.text()
         self.stitched_image = image_func.image_stitch(images, out_dir)
@@ -248,11 +250,17 @@ class MainWindow(QMainWindow):
             self.label2.setText('拼接失败，请检查拍摄的输入图像，需要保证至少25%的重合拍摄!')
             self.label2.repaint()
         else:
+            # write stitched image picture to output dir
+            stitched_filename = os.path.join(self.edit1.text(), './stitched.jpg')
+            cv2.imwrite(stitched_filename, self.stitched_image)
+
             self.label2.setText('拼接成功!')
             self.label2.repaint()
             # display the image
-            out_jpg = QPixmap(out_dir + '/stitched.jpg', )
-            self.label4.setImage(out_jpg)
+            img1 = cv2.cvtColor(self.stitched_image, cv2.COLOR_BGR2RGB)
+            QImg = QImage(img1.data, img1.shape[1], img1.shape[0], 3 * img1.shape[1], QImage.Format_RGB888)
+            pixmap = QPixmap.fromImage(QImg)
+            self.label4.setImage(pixmap)
             self.label4.repaint()
 
     def dynamic_widget_button3(self):
@@ -292,12 +300,17 @@ class MainWindow(QMainWindow):
         (cx, cy, c,max_x, max_y, min_x, min_y) = self.contour_list
         self.img_grid = copy.deepcopy(self.img_contour)
         self.img_grid = image_func.draw_grid(self.img_grid,cx,cy,max_x,max_y,min_x,min_y,int(row),int(col))
+
+        #write grid image picture to output dir
+        grid_filename = os.path.join(self.edit1.text(),'./grid_image.jpg')
+        cv2.imwrite(grid_filename,self.img_grid)
+
         img1 = cv2.cvtColor(self.img_grid, cv2.COLOR_BGR2RGB)
         QImg = QImage(img1.data, img1.shape[1], img1.shape[0], 3 * img1.shape[1], QImage.Format_RGB888)
         pixmap = QPixmap.fromImage(QImg)
         self.label4.setImage(pixmap)
         self.label4.repaint()
-        text = '网格行数：' + row + ',网格列数:' + col + '\n' + '显示网格！\n（注意：当行列设置不恰当，边界上的网格可能不均匀）'
+        text = '网格行数：' + row + ',网格列数:' + col + '\n' + '显示网格！\n（注意：不支持分数像素，因此划分的网格可能不均匀）'
         self.label2.setText(text)
 
 
@@ -373,7 +386,7 @@ class MainWindow(QMainWindow):
             self.label2.repaint()
             return
 
-        text = '开始生成组分图像并且抽取统计信息，请等待...'+'\n' + '（注意：当行列设置不恰当，边界上的网格可能不均匀）'
+        text = '开始生成组分图像并且抽取统计信息，请等待......'+'\n' + '（注意：不支持分数像素，因此划分的网格可能不均匀）'
         self.label2.setText(text)
         self.label2.repaint()
 
@@ -390,15 +403,18 @@ class MainWindow(QMainWindow):
         low_range = np.array([h_low,s_low,v_low])
         high_range = np.array([h_high,s_high,v_high])
         (cx, cy, c,max_x, max_y, min_x, min_y) = self.contour_list
-
-        mask_hsv = image_func.get_color_mask_image(self.stitched_image,low_range,high_range)
-        mask_hsv = image_func.generate_final_mask(self.stitched_image,mask_hsv,c,remove_enable)
+        out_dir = self.edit1.text()
+        mask_hsv,img_hsv = image_func.get_color_mask_image(self.stitched_image,low_range,high_range)
+        mask_hsv = image_func.generate_final_mask(img_hsv,mask_hsv,c,remove_enable,BACKGROUND_LOW,BACKGROUND_HIGH)
         grid_row, grid_col = image_func.get_grid_info(mask_hsv, cx, cy, max_x, max_y, min_x, min_y, row, col)
-        image_func.get_statistics_per_bin(mask_hsv,grid_row,grid_col)
-        res = image_func.generate_image_from_mask(self.stitched_image,mask_hsv,cx,cy,max_x,max_y,min_x,min_y,row,col)
+        image_func.get_statistics_per_bin(mask_hsv,grid_row,grid_col,out_dir)
+        res = image_func.generate_image_from_mask(self.stitched_image,mask_hsv,cx,cy,c,max_x,max_y,min_x,min_y,row,col)
+
+        # write masked image picture to output dir
+        masked_filename = os.path.join(out_dir,'./masked_image.jpg')
+        cv2.imwrite(masked_filename, res)
+
         #keep net grid
-        cv2.imwrite('res.jpg',res)
-        cv2.imwrite('new_stitched.jpg',self.stitched_image)
         img1 = cv2.cvtColor(res, cv2.COLOR_BGR2RGB)
         QImg = QImage(img1.data, img1.shape[1], img1.shape[0], 3 * img1.shape[1], QImage.Format_RGB888)
         pixmap = QPixmap.fromImage(QImg)
