@@ -18,23 +18,79 @@ BACKGROUND_LOW = np.array([0,0,221])
 BACKGROUND_HIGH = np.array([180,30,255])
 
 #define new elements based on QLabel
+# class llabel(QLabel):
+#     def __init__(self):
+#         super(llabel, self).__init__()
+#         self.m_pixmap = None
+#
+#     def setImage(self, image):
+#         self.m_pixmap = image
+#
+#     def paintEvent(self, event):
+#         super().paintEvent(event)
+#         if self.m_pixmap is None:
+#             return
+#         scale_jpg = self.m_pixmap.scaled(self.size(), Qt.KeepAspectRatio|Qt.SmoothTransformation)
+#         self.setPixmap(scale_jpg)
+
 class llabel(QLabel):
     def __init__(self):
         super(llabel, self).__init__()
         self.m_pixmap = None
+        self.pos_x = None
+        self.pos_y = None
+        self.t0 = None
+        self.t1 = None
+        self.t2 = None
+        self.t3 = None
+        self.t4 = None
+        self.t5 = None
 
     def setImage(self, image):
         self.m_pixmap = image
+
+    def setShowText(self,t0,t1,t2,t3,t4,t5):
+        self.t0 = t0
+        self.t1 = t1
+        self.t2 = t2
+        self.t3 = t3
+        self.t4 = t4
+        self.t5 = t5
 
     def paintEvent(self, event):
         super().paintEvent(event)
         if self.m_pixmap is None:
             return
-        scale_jpg = self.m_pixmap.scaled(self.size(), Qt.KeepAspectRatio|Qt.SmoothTransformation)
+        scale_jpg = self.m_pixmap.scaled(self.size(), Qt.KeepAspectRatio | Qt.SmoothTransformation)
         self.setPixmap(scale_jpg)
-    def mouseMoveEvent(self, event):
 
+    def mousePressEvent(self, event):
+        pos_x = event.pos().x()
+        pos_y = event.pos().y()
+        #grab  windows
+        screen = QGuiApplication.primaryScreen()
+        qmap = screen.grabWindow(self.winId(),pos_x,pos_y,1,1)
+        qpixels = qmap.toImage()
+        c = qpixels.pixel(0,0)
+        hsv = QColor(c).getHsv()
 
+    def mouseDoubleClickEvent(self, event):
+        pos_x = event.pos().x()
+        pos_y = event.pos().y()
+        # grab  windows
+        screen = QGuiApplication.primaryScreen()
+        qmap = screen.grabWindow(self.winId(), pos_x, pos_y, 1, 1)
+        qpixels = qmap.toImage()
+        c = qpixels.pixel(0, 0)
+        hsv = QColor(c).getHsv()
+        #set windows
+        if  self.t0 is not None:
+            self.t0.setText(hsv[0])
+            self.t1.setText(hsv[0])
+            self.t2.setText(hsv[1])
+            self.t3.setText(hsv[1])
+            self.t4.setText(hsv[2])
+            self.t5.setText(hsv[2])
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -390,6 +446,7 @@ class MainWindow(QMainWindow):
         pixmap = QPixmap.fromImage(QImg)
         label1_checkbox.setImage(pixmap)
         vbox.addWidget(label1_checkbox)
+        label1_checkbox.setShowText(self.button4_edit0,self.button4_edit1,self.button4_edit2,self.button4_edit3,self.button4_edit4,self.button4_edit5)
         self.widget_checkbox.setLayout(vbox)
         self.widget_checkbox.setWindowFlags(Qt.WindowStaysOnTopHint)
         self.widget_checkbox.setGeometry(100,100,740,580)
