@@ -440,15 +440,23 @@ class MainWindow(QMainWindow):
             self.color_count = 1
             return
         else :
-            self.label2.setText('两个像素选择完成，第二个像素的HSV值为(%d,%d,%d)' % (h, s, v))
+            self.label2.setText('两个像素选择完成，第二个像素的HSV值为(%d,%d,%d)' % (h,s,v))
             self.label2.repaint()
             delta = 10
-            h_range_low = min(h-delta,self.h-delta)
-            h_range_high = max(h+delta,self.h+delta)
-            s_range_low = min(s - delta, self.s - delta)
-            s_range_high = max(s + delta, self.s + delta)
-            v_range_low = min(h - delta, self.v - delta)
-            v_range_high = max(h + delta, self.v + delta)
+            h_range_low = min(h-delta,self.select_h-delta)
+            h_range_high = max(h+delta,self.select_h+delta)
+            s_range_low = min(s - delta, self.select_s - delta)
+            s_range_high = max(s + delta, self.select_s + delta)
+            v_range_low = min(h - delta, self.select_v - delta)
+            v_range_high = max(h + delta, self.select_v + delta)
+
+            h_range_low = max(0,h_range_low)
+            h_range_high = min(180, h_range_high)
+            s_range_low = max(0,s_range_low)
+            s_range_high = min(255, s_range_high)
+            v_range_low = max(0,v_range_low)
+            v_range_high = min(255, v_range_high)
+
         # if h >= range_purple_h[0] and h <= range_purple_h[1]:
         #     h_range_low = range_purple_h[0]
         #     h_range_high = range_purple_h[1]
