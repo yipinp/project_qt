@@ -166,9 +166,13 @@ def generate_final_mask(img_hsv,mask_hsv,c,mode,back_ground_low,back_group_high)
     return mask_hsv
 
 
-def generate_image_from_mask(img,mask_hsv,cx,cy,c,max_x,max_y,min_x,min_y,row,col):
+def generate_image_from_mask(img,mask_hsv,cx,cy,c,max_x,max_y,min_x,min_y,row,col,white_flag):
     res = cv2.bitwise_and(img,img,mask = mask_hsv)
-    #res = cv2.bitwise_or(img[min_y:max_y,min_x:max_x,:], (255,255,255), mask=mask_hsv[min_y:max_y,min_x:max_x])
+    if white_flag :
+        #set background as white
+        mask_hsv_white = cv2.bitwise_not(mask_hsv)
+        res = cv2.bitwise_or(res,(255,255,255),mask=mask_hsv_white)
+        #res = cv2.bitwise_or(img[min_y:max_y,min_x:max_x,:], (255,255,255), mask=mask_hsv[min_y:max_y,min_x:max_x])
     cv2.line(res,(cx,min_y),(cx,max_y),(255,0,0),LINEWIDTH)
     cv2.line(res,(min_x,cy),(max_x,cy),(0,255,0),LINEWIDTH)
     cv2.polylines(res, c, True, RED, 20)

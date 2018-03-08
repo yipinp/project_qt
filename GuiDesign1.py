@@ -34,28 +34,15 @@ BACKGROUND_HIGH = np.array([180,30,255])
 #         self.setPixmap(scale_jpg)
 
 class llabel(QLabel):
+    signal_selected_hsv = pyqtSignal(tuple)
     def __init__(self):
         super(llabel, self).__init__()
         self.m_pixmap = None
         self.pos_x = None
         self.pos_y = None
-        self.t0 = None
-        self.t1 = None
-        self.t2 = None
-        self.t3 = None
-        self.t4 = None
-        self.t5 = None
 
     def setImage(self, image):
         self.m_pixmap = image
-
-    def setShowText(self,t0,t1,t2,t3,t4,t5):
-        self.t0 = t0
-        self.t1 = t1
-        self.t2 = t2
-        self.t3 = t3
-        self.t4 = t4
-        self.t5 = t5
 
     def paintEvent(self, event):
         super().paintEvent(event)
@@ -72,7 +59,11 @@ class llabel(QLabel):
         qmap = screen.grabWindow(self.winId(),pos_x,pos_y,1,1)
         qpixels = qmap.toImage()
         c = qpixels.pixel(0,0)
-        hsv = QColor(c).getHsv()
+        hsv = QColor(c).getHsvF()
+        h = int(hsv[0]*180)
+        s = int(hsv[1]*256)
+        v = int(hsv[2]*256)
+        print(h,s,v,pos_x,pos_y)
 
     def mouseDoubleClickEvent(self, event):
         pos_x = event.pos().x()
@@ -82,15 +73,9 @@ class llabel(QLabel):
         qmap = screen.grabWindow(self.winId(), pos_x, pos_y, 1, 1)
         qpixels = qmap.toImage()
         c = qpixels.pixel(0, 0)
-        hsv = QColor(c).getHsv()
-        #set windows
-        if  self.t0 is not None:
-            self.t0.setText(hsv[0])
-            self.t1.setText(hsv[0])
-            self.t2.setText(hsv[1])
-            self.t3.setText(hsv[1])
-            self.t4.setText(hsv[2])
-            self.t5.setText(hsv[2])
+        hsv = QColor(c).getHsvF()
+        self.signal_selected_hsv.emit(hsv)
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -101,6 +86,10 @@ class MainWindow(QMainWindow):
         self.img_contour = None
         self.img_grid = None
         self.contour_list = None
+        self.color_count = 0
+        self.select_h = 0
+        self.select_s = 0
+        self.select_v = 0
 
         #provide font setting
         self.font_level0 = QFont()
@@ -399,6 +388,7 @@ class MainWindow(QMainWindow):
         self.button4_edit7 = QLineEdit()
 
         self.checkbox0 = QCheckBox('去除')
+        self.checkbox1 = QCheckBox('组分图像背景设为白色')
 
         vbox.addWidget(label0,0,0)
         vbox.addWidget(self.button4_edit0,0,1)
@@ -422,8 +412,9 @@ class MainWindow(QMainWindow):
         vbox.addWidget(self.button4_edit7, 3, 3)
 
         vbox.addWidget(self.checkbox0,4,0)
+        vbox.addWidget(self.checkbox1, 4, 1)
         self.button4_start = QPushButton('开始')
-        vbox.addWidget(self.button4_start,4,1)
+        vbox.addWidget(self.button4_start,4,2)
 
         checkbox1.stateChanged.connect(self.OnClickCheckbox)
         self.button4_start.clicked.connect(self.OnClickedButton4Start)
@@ -435,18 +426,63 @@ class MainWindow(QMainWindow):
     def OnClickCheckbox(self):
         self.dynamic_widget_button5()
 
+    def receive_selected_color(self,hsv):
+        h = int(hsv[0] * 180)
+        s = int(hsv[1] * 256)
+        v = int(hsv[2] * 256)
+
+        if self.color_count == 0:
+            self.select_h = h
+            self.select_s = s
+            self.select_v = v
+            self.label2.setText('已经选择了一个像素，其HSV值为(%d,%d,%d)，请继续选择第二个像素......'% (h,s,v))
+            self.label2.repaint()
+            self.color_count = 1
+            return
+        else :
+            self.label2.setText('两个像素选择完成，第二个像素的HSV值为(%d,%d,%d)' % (h, s, v))
+            self.label2.repaint()
+            delta = 10
+            h_range_low = min(h-delta,self.h-delta)
+            h_range_high = max(h+delta,self.h+delta)
+            s_range_low = min(s - delta, self.s - delta)
+            s_range_high = max(s + delta, self.s + delta)
+            v_range_low = min(h - delta, self.v - delta)
+            v_range_high = max(h + delta, self.v + delta)
+        # if h >= range_purple_h[0] and h <= range_purple_h[1]:
+        #     h_range_low = range_purple_h[0]
+        #     h_range_high = range_purple_h[1]
+        # elif h >= range_red_h0[0] and h <= range_red_h0[1]:
+        #     h_range_low = range_red_h0[0]
+        #     h_range_high = range_red_h0[1]
+        # elif h >= range_red_h1[0] and h <= range_red_h1[1]:
+        #     h_range_low = range_red_h1[0]
+        #     h_range_high = range_red_h1[1]
+
+        self.button4_edit0.setText(str(h_range_low))
+        self.button4_edit1.setText(str(h_range_high))
+        self.button4_edit2.setText(str(s_range_low))
+        self.button4_edit3.setText(str(s_range_high))
+        self.button4_edit4.setText(str(v_range_low))
+        self.button4_edit5.setText(str(v_range_high))
+
+
 
     def dynamic_widget_button5(self):
+        text = '请在图像中双击选择两个像素来设置图像的HSV范围......'
+        self.label2.setText(text)
+        self.label2.repaint()
+
         self.widget_checkbox = QWidget()
         vbox = QGridLayout()
         self.widget_checkbox.setWindowTitle("颜色选择")
         label1_checkbox = llabel()
+        label1_checkbox.signal_selected_hsv.connect(self.receive_selected_color)
         img1 = cv2.cvtColor(self.stitched_image, cv2.COLOR_BGR2RGB)
         QImg = QImage(img1.data, img1.shape[1], img1.shape[0], 3 * img1.shape[1], QImage.Format_RGB888)
         pixmap = QPixmap.fromImage(QImg)
         label1_checkbox.setImage(pixmap)
         vbox.addWidget(label1_checkbox)
-        label1_checkbox.setShowText(self.button4_edit0,self.button4_edit1,self.button4_edit2,self.button4_edit3,self.button4_edit4,self.button4_edit5)
         self.widget_checkbox.setLayout(vbox)
         self.widget_checkbox.setWindowFlags(Qt.WindowStaysOnTopHint)
         self.widget_checkbox.setGeometry(100,100,740,580)
@@ -454,6 +490,7 @@ class MainWindow(QMainWindow):
 
 
     def OnClickedButton4Start(self):
+        self.widget_checkbox.close()
         self.widget_button4.close()
 
         if self.stitched_image is None:
@@ -481,6 +518,7 @@ class MainWindow(QMainWindow):
         row  =  int(self.button4_edit6.text())
         col  =  int(self.button4_edit7.text())
         remove_enable = int(self.checkbox0.isChecked())
+        white_flag = int(self.checkbox1.isChecked())
 
         low_range = np.array([h_low,s_low,v_low])
         high_range = np.array([h_high,s_high,v_high])
@@ -490,7 +528,7 @@ class MainWindow(QMainWindow):
         mask_hsv = image_func.generate_final_mask(img_hsv,mask_hsv,c,remove_enable,BACKGROUND_LOW,BACKGROUND_HIGH)
         grid_row, grid_col = image_func.get_grid_info(mask_hsv, cx, cy, max_x, max_y, min_x, min_y, row, col)
         image_func.get_statistics_per_bin(mask_hsv,grid_row,grid_col,out_dir)
-        res = image_func.generate_image_from_mask(self.stitched_image,mask_hsv,cx,cy,c,max_x,max_y,min_x,min_y,row,col)
+        res = image_func.generate_image_from_mask(self.stitched_image,mask_hsv,cx,cy,c,max_x,max_y,min_x,min_y,row,col,white_flag)
 
         # write masked image picture to output dir
         masked_filename = os.path.join(out_dir,'./masked_image.jpg')
