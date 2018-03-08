@@ -167,12 +167,12 @@ def generate_final_mask(img_hsv,mask_hsv,c,mode,back_ground_low,back_group_high)
 
 
 def generate_image_from_mask(img,mask_hsv,cx,cy,c,max_x,max_y,min_x,min_y,row,col,white_flag):
-    res = cv2.bitwise_and(img,img,mask = mask_hsv)
+    res = cv2.bitwise_and(img,(255,255,255),mask = mask_hsv)
     if white_flag :
         #set background as white
         mask_hsv_white = cv2.bitwise_not(mask_hsv)
         res = cv2.bitwise_or(res,(255,255,255),mask=mask_hsv_white)
-        #res = cv2.bitwise_or(img[min_y:max_y,min_x:max_x,:], (255,255,255), mask=mask_hsv[min_y:max_y,min_x:max_x])
+
     cv2.line(res,(cx,min_y),(cx,max_y),(255,0,0),LINEWIDTH)
     cv2.line(res,(min_x,cy),(max_x,cy),(0,255,0),LINEWIDTH)
     cv2.polylines(res, c, True, RED, 20)
@@ -335,7 +335,7 @@ def get_statistics_per_bin(mask_hsv,grid_row,grid_col,out_dir):
             index = index + 1
             sheet.write(index, 4, int(mask_area_list[index-1]) / int(total), style_percent)
 
-    data.save(out_dir + './网格统计信息表.xls')
+    data.save(out_dir + '/网格统计信息表.xls')
 
 def get_bin_area(mask_hsv,start_x,end_x,start_y,end_y):
     num = 0

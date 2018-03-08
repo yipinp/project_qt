@@ -272,7 +272,7 @@ class MainWindow(QMainWindow):
         vbox.addWidget(self.label21,2,1)
         self.widget_button0.setLayout(vbox)
         self.widget_button0.setWindowFlags(Qt.WindowStaysOnTopHint)
-        self.widget_button0.move(100,100)
+        self.widget_button0.move(200,200)
         self.widget_button0.show()
 
     def OnClickButtonFile0(self):
@@ -442,7 +442,7 @@ class MainWindow(QMainWindow):
         else :
             self.label2.setText('两个像素选择完成，第二个像素的HSV值为(%d,%d,%d)' % (h,s,v))
             self.label2.repaint()
-            delta = 10
+            delta = 0
             h_range_low = min(h-delta,self.select_h-delta)
             h_range_high = max(h+delta,self.select_h+delta)
             s_range_low = min(s - delta, self.select_s - delta)
@@ -456,6 +456,7 @@ class MainWindow(QMainWindow):
             s_range_high = min(255, s_range_high)
             v_range_low = max(0,v_range_low)
             v_range_high = min(255, v_range_high)
+            self.color_count = 0
 
         # if h >= range_purple_h[0] and h <= range_purple_h[1]:
         #     h_range_low = range_purple_h[0]
@@ -541,6 +542,10 @@ class MainWindow(QMainWindow):
         # write masked image picture to output dir
         masked_filename = os.path.join(out_dir,'./masked_image.jpg')
         cv2.imwrite(masked_filename, res)
+
+        #show origin and new image
+        res = np.concatenate((self.stitched_image,res),axis=1)
+
 
         #keep net grid
         img1 = cv2.cvtColor(res, cv2.COLOR_BGR2RGB)
