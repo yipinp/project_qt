@@ -15,8 +15,8 @@ RED  = (0,0,255)
 LINEWIDTH = 10
 
 
-BACKGROUND_LOW = np.array([0,0,221])
-BACKGROUND_HIGH = np.array([180,30,255])
+BACKGROUND_LOW = np.array([0,0,254])
+BACKGROUND_HIGH = np.array([180,1,255])
 '''
         Preprocessing  function
 '''
@@ -160,25 +160,27 @@ def generate_final_mask(img_hsv,mask_hsv,c,mode,back_ground_low,back_group_high)
     mask_background = cv2.inRange(img_hsv,back_ground_low,back_group_high)
     mask_background = cv2.bitwise_not(mask_background)
     mask_hsv = cv2.bitwise_and(mask_hsv,mask_background)
+
     for i in range(c.shape[0]):
         mask_hsv[c[i,0,1],c[i,0,0]] = 255
 
     return mask_hsv
 
 
-def generate_image_from_mask(img,mask_hsv,cx,cy,c,max_x,max_y,min_x,min_y,row,col,white_flag):
-    res = cv2.bitwise_and(img,(255,255,255),mask = mask_hsv)
+def generate_image_from_mask(img,mask_hsv,cx,cy,c,max_x,max_y,min_x,min_y,row,col,white_flag = 0):
+    res = cv2.bitwise_and(img,img,mask = mask_hsv)
     if white_flag :
         #set background as white
         mask_hsv_white = cv2.bitwise_not(mask_hsv)
         res = cv2.bitwise_or(res,(255,255,255),mask=mask_hsv_white)
+    res1 = img - res
 
     cv2.line(res,(cx,min_y),(cx,max_y),(255,0,0),LINEWIDTH)
     cv2.line(res,(min_x,cy),(max_x,cy),(0,255,0),LINEWIDTH)
     cv2.polylines(res, c, True, RED, 20)
     cv2.circle(res, (cx, cy), 30, RED, -1)
     draw_grid(res,cx,cy,max_x,max_y,min_x,min_y,row,col)
-    return res
+    return res,res1
 
 '''
                 Grid generation
@@ -347,8 +349,11 @@ def get_bin_area(mask_hsv,start_x,end_x,start_y,end_y):
 
 # #
 # imageName = r'/home/pyp/project_stitch/project_qt/images/B.jpg'
-# #imageName = r'C:\DL_project\project_qt\images\B.jpg'
-# img = cv2.imread(imageName)
+# imageName = r'C:\DL_project\project_qt\images\B.jpg'
+# img = cv2.imread(imageName,cv2.IMREAD_GRAYSCALE)
+# ret,res = cv2.threshold(img,55,255,cv2.THRESH_BINARY_INV)
+# cv2.imwrite('gray.jpg',res)
+# cv2.imwrite('res.jpg',img-res)
 # # get_histogram_3d(img)
 # cx,cy,c,max_x,max_y,min_x,min_y,image = get_contour(img)
 # red_low_range = np.array([125,43,33])

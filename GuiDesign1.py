@@ -14,8 +14,8 @@ import os
 
 WINDOW_WIDTH = 720
 WINDOW_HEIGHT = 576
-BACKGROUND_LOW = np.array([0,0,221])
-BACKGROUND_HIGH = np.array([180,30,255])
+BACKGROUND_LOW = np.array([180,0,254])
+BACKGROUND_HIGH = np.array([180,0,255])
 
 #define new elements based on QLabel
 # class llabel(QLabel):
@@ -63,7 +63,7 @@ class llabel(QLabel):
         h = int(hsv[0]*180)
         s = int(hsv[1]*256)
         v = int(hsv[2]*256)
-        print(h,s,v,pos_x,pos_y)
+       # print(hsv,h,s,v,pos_x,pos_y)
 
     def mouseDoubleClickEvent(self, event):
         pos_x = event.pos().x()
@@ -389,6 +389,7 @@ class MainWindow(QMainWindow):
 
         self.checkbox0 = QCheckBox('去除')
         self.checkbox1 = QCheckBox('组分图像背景设为白色')
+        self.checkbox2 = QCheckBox('灰度模式')
 
         vbox.addWidget(label0,0,0)
         vbox.addWidget(self.button4_edit0,0,1)
@@ -412,7 +413,7 @@ class MainWindow(QMainWindow):
         vbox.addWidget(self.button4_edit7, 3, 3)
 
         vbox.addWidget(self.checkbox0,4,0)
-        vbox.addWidget(self.checkbox1, 4, 1)
+        #vbox.addWidget(self.checkbox2, 4, 1)
         self.button4_start = QPushButton('开始')
         vbox.addWidget(self.button4_start,4,2)
 
@@ -442,13 +443,13 @@ class MainWindow(QMainWindow):
         else :
             self.label2.setText('两个像素选择完成，第二个像素的HSV值为(%d,%d,%d)' % (h,s,v))
             self.label2.repaint()
-            delta = 0
+            delta = 15
             h_range_low = min(h-delta,self.select_h-delta)
             h_range_high = max(h+delta,self.select_h+delta)
             s_range_low = min(s - delta, self.select_s - delta)
             s_range_high = max(s + delta, self.select_s + delta)
-            v_range_low = min(h - delta, self.select_v - delta)
-            v_range_high = max(h + delta, self.select_v + delta)
+            v_range_low = min(v - delta, self.select_v - delta)
+            v_range_high = max(v + delta, self.select_v + delta)
 
             h_range_low = max(0,h_range_low)
             h_range_high = min(180, h_range_high)
@@ -528,6 +529,7 @@ class MainWindow(QMainWindow):
         col  =  int(self.button4_edit7.text())
         remove_enable = int(self.checkbox0.isChecked())
         white_flag = int(self.checkbox1.isChecked())
+       # gray_mode = int(self.checkbox2.isChecked())
 
         low_range = np.array([h_low,s_low,v_low])
         high_range = np.array([h_high,s_high,v_high])
@@ -537,11 +539,15 @@ class MainWindow(QMainWindow):
         mask_hsv = image_func.generate_final_mask(img_hsv,mask_hsv,c,remove_enable,BACKGROUND_LOW,BACKGROUND_HIGH)
         grid_row, grid_col = image_func.get_grid_info(mask_hsv, cx, cy, max_x, max_y, min_x, min_y, row, col)
         image_func.get_statistics_per_bin(mask_hsv,grid_row,grid_col,out_dir)
-        res = image_func.generate_image_from_mask(self.stitched_image,mask_hsv,cx,cy,c,max_x,max_y,min_x,min_y,row,col,white_flag)
+        res,res1 = image_func.generate_image_from_mask(self.stitched_image,mask_hsv,cx,cy,c,max_x,max_y,min_x,min_y,row,col,white_flag)
 
         # write masked image picture to output dir
+        mask_filename = os.path.join(out_dir, './mask_map.jpg')
+        cv2.imwrite(mask_filename, mask_hsv)
         masked_filename = os.path.join(out_dir,'./masked_image.jpg')
         cv2.imwrite(masked_filename, res)
+        inv_masked_filename = os.path.join(out_dir, './inv_masked_image.jpg')
+        cv2.imwrite(inv_masked_filename, res1)
 
         #show origin and new image
         res = np.concatenate((self.stitched_image,res),axis=1)
