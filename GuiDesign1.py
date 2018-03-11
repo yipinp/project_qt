@@ -34,7 +34,7 @@ BACKGROUND_HIGH = np.array([180,0,255])
 #         self.setPixmap(scale_jpg)
 
 class llabel(QLabel):
-    signal_selected_hsv = pyqtSignal(tuple)
+    signal_selected_hsv = pyqtSignal(int)
     def __init__(self):
         super(llabel, self).__init__()
         self.m_pixmap = None
@@ -73,14 +73,14 @@ class llabel(QLabel):
         qmap = screen.grabWindow(self.winId(), pos_x, pos_y, 1, 1)
         qpixels = qmap.toImage()
         c = qpixels.pixel(0, 0)
-        hsv = QColor(c).getHsvF()
-        self.signal_selected_hsv.emit(hsv)
+        #hsv = QColor(c).getHsvF()
+        self.signal_selected_hsv.emit(c)
 
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow,self).__init__()
-        self.setWindowTitle("图像处理程序 版本： 0.8")
+        self.setWindowTitle("图像处理程序 版本： 0.9")
         self.resize(WINDOW_WIDTH,WINDOW_HEIGHT)
         self.stitched_image = None
         self.img_contour = None
@@ -90,6 +90,8 @@ class MainWindow(QMainWindow):
         self.select_h = 0
         self.select_s = 0
         self.select_v = 0
+        self.group = 0
+        self.selected_rgb= None
 
         #provide font setting
         self.font_level0 = QFont()
@@ -382,14 +384,16 @@ class MainWindow(QMainWindow):
         label5 = QLabel('to:')
         self.button4_edit5 = QLineEdit()
 
+        label8 = QLabel('背景填充颜色的RGB值为:')
+        self.button4_edit8 = QLineEdit()
+        self.button4_edit9 = QLineEdit()
+        self.button4_edit10 = QLineEdit()
+
         label6 = QLabel('网格设置 行数：')
         self.button4_edit6 = QLineEdit()
         label7 = QLabel('列数:')
         self.button4_edit7 = QLineEdit()
 
-        self.checkbox0 = QCheckBox('去除')
-        self.checkbox1 = QCheckBox('组分图像背景设为白色')
-        self.checkbox2 = QCheckBox('灰度模式')
 
         vbox.addWidget(label0,0,0)
         vbox.addWidget(self.button4_edit0,0,1)
@@ -407,16 +411,19 @@ class MainWindow(QMainWindow):
         vbox.addWidget(label5, 2, 2)
         vbox.addWidget(self.button4_edit5, 2, 3)
 
-        vbox.addWidget(label6, 3, 0)
-        vbox.addWidget(self.button4_edit6, 3, 1)
-        vbox.addWidget(label7, 3, 2)
-        vbox.addWidget(self.button4_edit7, 3, 3)
+        vbox.addWidget(label8, 3, 0)
+        vbox.addWidget(self.button4_edit8, 3, 1)
+        vbox.addWidget(self.button4_edit9, 3, 2)
+        vbox.addWidget(self.button4_edit10, 3, 3)
 
-        vbox.addWidget(self.checkbox0,4,0)
-        #vbox.addWidget(self.checkbox2, 4, 1)
+
+        vbox.addWidget(label6, 4, 0)
+        vbox.addWidget(self.button4_edit6, 4, 1)
+        vbox.addWidget(label7, 4, 2)
+        vbox.addWidget(self.button4_edit7, 4, 3)
+
         self.button4_start = QPushButton('开始')
-        vbox.addWidget(self.button4_start,4,2)
-
+        vbox.addWidget(self.button4_start,5,1)
         checkbox1.stateChanged.connect(self.OnClickCheckbox)
         self.button4_start.clicked.connect(self.OnClickedButton4Start)
         self.widget_button4.setLayout(vbox)
@@ -427,59 +434,46 @@ class MainWindow(QMainWindow):
     def OnClickCheckbox(self):
         self.dynamic_widget_button5()
 
-    def receive_selected_color(self,hsv):
+    def receive_selected_color(self,c):
+        hsv = QColor(c).getHsvF()
+        rgb = QColor(c).getRgbF()
         h = int(hsv[0] * 180)
         s = int(hsv[1] * 256)
         v = int(hsv[2] * 256)
+        r = int(rgb[0] * 256)
+        g = int(rgb[1] * 256)
+        b = int(rgb[2] * 256)
 
         if self.color_count == 0:
             self.select_h = h
             self.select_s = s
             self.select_v = v
-            self.label2.setText('已经选择了一个像素，其HSV值为(%d,%d,%d)，请继续选择第二个像素......'% (h,s,v))
+            self.label2.setText('已经选择了当前组分的一个像素，其HSV值为(%d,%d,%d)，请继续选择另外一个组分中的一个像素......'% (h,s,v))
             self.label2.repaint()
             self.color_count = 1
             return
-        else :
-            self.label2.setText('两个像素选择完成，第二个像素的HSV值为(%d,%d,%d)' % (h,s,v))
+        elif self.color_count == 1 :
+            self.label2.setText('第二个像素的HSV值为(%d,%d,%d),组分像素已经选择完成,下面开始选择背景颜色!' % (h,s,v))
             self.label2.repaint()
-            delta = 15
-            h_range_low = min(h-delta,self.select_h-delta)
-            h_range_high = max(h+delta,self.select_h+delta)
-            s_range_low = min(s - delta, self.select_s - delta)
-            s_range_high = max(s + delta, self.select_s + delta)
-            v_range_low = min(v - delta, self.select_v - delta)
-            v_range_high = max(v + delta, self.select_v + delta)
-
-            h_range_low = max(0,h_range_low)
-            h_range_high = min(180, h_range_high)
-            s_range_low = max(0,s_range_low)
-            s_range_high = min(255, s_range_high)
-            v_range_low = max(0,v_range_low)
-            v_range_high = min(255, v_range_high)
+            self.color_count = 2
+            range = abs(v - self.select_v)
+            self.button4_edit0.setText(str(0))
+            self.button4_edit1.setText(str(180))
+            self.button4_edit2.setText(str(0))
+            self.button4_edit3.setText(str(255))
+            self.button4_edit4.setText(str(max(0,self.select_v - range//2)))
+            self.button4_edit5.setText(str(min(255,self.select_v + range//2)))
+        else:
+            self.label2.setText('背景像素的RGB值为(%d,%d,%d),背景颜色选择完成!' % (r, g, b))
+            self.label2.repaint()
+            self.button4_edit8.setText(str(r))
+            self.button4_edit9.setText(str(g))
+            self.button4_edit10.setText(str(b))
             self.color_count = 0
-
-        # if h >= range_purple_h[0] and h <= range_purple_h[1]:
-        #     h_range_low = range_purple_h[0]
-        #     h_range_high = range_purple_h[1]
-        # elif h >= range_red_h0[0] and h <= range_red_h0[1]:
-        #     h_range_low = range_red_h0[0]
-        #     h_range_high = range_red_h0[1]
-        # elif h >= range_red_h1[0] and h <= range_red_h1[1]:
-        #     h_range_low = range_red_h1[0]
-        #     h_range_high = range_red_h1[1]
-
-        self.button4_edit0.setText(str(h_range_low))
-        self.button4_edit1.setText(str(h_range_high))
-        self.button4_edit2.setText(str(s_range_low))
-        self.button4_edit3.setText(str(s_range_high))
-        self.button4_edit4.setText(str(v_range_low))
-        self.button4_edit5.setText(str(v_range_high))
-
 
 
     def dynamic_widget_button5(self):
-        text = '请在图像中双击选择两个像素来设置图像的HSV范围......'
+        text = '请在图像中双击选择2个像素来设置HSV范围,每个组分1个，第一个会作为当前组分......'
         self.label2.setText(text)
         self.label2.repaint()
 
@@ -525,29 +519,29 @@ class MainWindow(QMainWindow):
         s_high = int(self.button4_edit3.text())
         v_low = int(self.button4_edit4.text())
         v_high = int(self.button4_edit5.text())
+        r = int(self.button4_edit8.text())
+        g = int(self.button4_edit9.text())
+        b = int(self.button4_edit10.text())
+        rgb = (r,g,b)
         row  =  int(self.button4_edit6.text())
         col  =  int(self.button4_edit7.text())
-        remove_enable = int(self.checkbox0.isChecked())
-        white_flag = int(self.checkbox1.isChecked())
-       # gray_mode = int(self.checkbox2.isChecked())
 
         low_range = np.array([h_low,s_low,v_low])
         high_range = np.array([h_high,s_high,v_high])
         (cx, cy, c,max_x, max_y, min_x, min_y) = self.contour_list
         out_dir = self.edit1.text()
         mask_hsv,img_hsv = image_func.get_color_mask_image(self.stitched_image,low_range,high_range)
-        mask_hsv = image_func.generate_final_mask(img_hsv,mask_hsv,c,remove_enable,BACKGROUND_LOW,BACKGROUND_HIGH)
+        mask_hsv = image_func.generate_final_mask(img_hsv,mask_hsv,c,BACKGROUND_LOW,BACKGROUND_HIGH)
         grid_row, grid_col = image_func.get_grid_info(mask_hsv, cx, cy, max_x, max_y, min_x, min_y, row, col)
         image_func.get_statistics_per_bin(mask_hsv,grid_row,grid_col,out_dir)
-        res,res1 = image_func.generate_image_from_mask(self.stitched_image,mask_hsv,cx,cy,c,max_x,max_y,min_x,min_y,row,col,white_flag)
-
+        res= image_func.generate_image_from_mask(self.stitched_image,mask_hsv,cx,cy,c,max_x,max_y,min_x,min_y,row,col,rgb)
         # write masked image picture to output dir
         mask_filename = os.path.join(out_dir, './mask_map.jpg')
         cv2.imwrite(mask_filename, mask_hsv)
         masked_filename = os.path.join(out_dir,'./masked_image.jpg')
         cv2.imwrite(masked_filename, res)
-        inv_masked_filename = os.path.join(out_dir, './inv_masked_image.jpg')
-        cv2.imwrite(inv_masked_filename, res1)
+       # inv_masked_filename = os.path.join(out_dir, './inv_masked_image.jpg')
+       # cv2.imwrite(inv_masked_filename, res1)
 
         #show origin and new image
         res = np.concatenate((self.stitched_image,res),axis=1)

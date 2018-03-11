@@ -1,6 +1,7 @@
 import os
 import os.path
 import cv2
+import copy
 import numpy as np
 import matplotlib.pyplot as plt
 import xlwt
@@ -153,9 +154,7 @@ def get_color_mask_image(img,hsv_low_range,hsv_high_range):
     return mask_hsv,img_hsv
 
 
-def generate_final_mask(img_hsv,mask_hsv,c,mode,back_ground_low,back_group_high):
-    if mode == 1:
-        mask_hsv = cv2.bitwise_not(mask_hsv)
+def generate_final_mask(img_hsv,mask_hsv,c,back_ground_low,back_group_high):
     #always mask the background color
     mask_background = cv2.inRange(img_hsv,back_ground_low,back_group_high)
     mask_background = cv2.bitwise_not(mask_background)
@@ -167,20 +166,21 @@ def generate_final_mask(img_hsv,mask_hsv,c,mode,back_ground_low,back_group_high)
     return mask_hsv
 
 
-def generate_image_from_mask(img,mask_hsv,cx,cy,c,max_x,max_y,min_x,min_y,row,col,white_flag = 0):
+def generate_image_from_mask(img,mask_hsv,cx,cy,c,max_x,max_y,min_x,min_y,row,col,rgb):
     res = cv2.bitwise_and(img,img,mask = mask_hsv)
-    if white_flag :
-        #set background as white
-        mask_hsv_white = cv2.bitwise_not(mask_hsv)
-        res = cv2.bitwise_or(res,(255,255,255),mask=mask_hsv_white)
-    res1 = img - res
+    #res1 = cv2.subtract(img,res)
+    # set background as predefined pixel
+    mask_hsv_white = cv2.bitwise_not(mask_hsv)
+    res_backgroup = cv2.bitwise_or(res, rgb, mask=mask_hsv_white)
+    res = res + res_backgroup
 
     cv2.line(res,(cx,min_y),(cx,max_y),(255,0,0),LINEWIDTH)
     cv2.line(res,(min_x,cy),(max_x,cy),(0,255,0),LINEWIDTH)
     cv2.polylines(res, c, True, RED, 20)
     cv2.circle(res, (cx, cy), 30, RED, -1)
     draw_grid(res,cx,cy,max_x,max_y,min_x,min_y,row,col)
-    return res,res1
+    return res
+
 
 '''
                 Grid generation
