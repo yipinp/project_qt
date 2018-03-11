@@ -91,7 +91,6 @@ class MainWindow(QMainWindow):
         self.select_s = 0
         self.select_v = 0
         self.group = 0
-        self.selected_rgb= None
 
         #provide font setting
         self.font_level0 = QFont()
@@ -522,7 +521,7 @@ class MainWindow(QMainWindow):
         r = int(self.button4_edit8.text())
         g = int(self.button4_edit9.text())
         b = int(self.button4_edit10.text())
-        rgb = (r,g,b)
+        bgr = (b,g,r)
         row  =  int(self.button4_edit6.text())
         col  =  int(self.button4_edit7.text())
 
@@ -534,7 +533,7 @@ class MainWindow(QMainWindow):
         mask_hsv = image_func.generate_final_mask(img_hsv,mask_hsv,c,BACKGROUND_LOW,BACKGROUND_HIGH)
         grid_row, grid_col = image_func.get_grid_info(mask_hsv, cx, cy, max_x, max_y, min_x, min_y, row, col)
         image_func.get_statistics_per_bin(mask_hsv,grid_row,grid_col,out_dir)
-        res= image_func.generate_image_from_mask(self.stitched_image,mask_hsv,cx,cy,c,max_x,max_y,min_x,min_y,row,col,rgb)
+        res= image_func.generate_image_from_mask(self.stitched_image,mask_hsv,cx,cy,c,max_x,max_y,min_x,min_y,row,col,bgr)
         # write masked image picture to output dir
         mask_filename = os.path.join(out_dir, './mask_map.jpg')
         cv2.imwrite(mask_filename, mask_hsv)
