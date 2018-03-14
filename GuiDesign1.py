@@ -91,7 +91,7 @@ class MainWindow(QMainWindow):
         self.select_s = 0
         self.select_v = 0
         self.group = 0
-
+        self.widget_checkbox = None
         #provide font setting
         self.font_level0 = QFont()
         self.font_level0.setFamily("宋体")
@@ -493,7 +493,8 @@ class MainWindow(QMainWindow):
 
 
     def OnClickedButton4Start(self):
-        self.widget_checkbox.close()
+        if self.widget_checkbox is not None:
+            self.widget_checkbox.close()
         self.widget_button4.close()
 
         if self.stitched_image is None:
